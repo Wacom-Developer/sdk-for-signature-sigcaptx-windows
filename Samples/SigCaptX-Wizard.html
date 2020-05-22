@@ -1,0 +1,64 @@
+﻿<!--
+/* ************************************************************************** */
+  SigCaptX-WizardCheckbox.html
+   
+  Cross browser Wizard Control sample showing how to use the following features:
+        Standard signature capture (using sigCtl)
+        Checkbox (with an option for a larger size)
+    Outputting Sigtext value to the browser text box
+    UTF8 text on buttons
+    Buttons created from local images
+    Buttons created from images downloaded from a Web site    
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardCheckbox-PadDefs.js
+  
+  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  
+   v4.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<html>
+<head>
+    <title>SigCaptX-WizardControl</title>
+    <script src="wgssSigCaptX.js"></script>
+    <script src="base64.js"></script>
+    <script src="SigCaptX-Wizard-Main.js"></script>
+    <script src="SigCaptX-Wizard-PadDefs.js"></script>
+    <script src="SigCaptX-Utils.js"></script>
+    <script src="SigCaptX-SessionControl.js"></script>
+    <script src="SigCaptX-Globals.js"></script>
+</head>
+  <body onload="wizardEventController.body_onload()">
+    <div style="width:100%">
+      <h2>Test Wizard Control</h2>
+      <table style="padding: 10px 10px;" cellspacing="30">
+        <tr>  
+          <td rowspan="2">
+            <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;"></div>
+          </td>
+          <td>
+            <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" onClick="wizardEventController.start_stop(3)" title="Starts/Stops a Wizard Script"/>
+          </td>
+        </tr>
+      </table>
+        
+    <h3>Options</h3>
+      <input type="checkbox" id="chkDisplayWizard" checked="checked"/>Display Wizard Control Window
+      <input type="checkbox" id="chkLargeCheckbox"/>Large size checkbox
+      <input type="checkbox" id="chkSigText"/>Output sigtext to browser text window <br/><br/>
+    Button options: 
+    <p style="margin-left: 40px">
+      <input type="radio" name="buttontype" id="standard" value="standard" checked="checked">Use standard buttons<br/>
+      <input type="radio" name="buttontype" id="utf8" value="utf8"/>Display UTF-8 text (e.g. for languages using logograms)<br/>
+      <input type="radio" name="buttontype" id="local" value="local">Use local images<br/>
+      <input type="radio" name="buttontype" id="remote" value="remote"/>Use remote (URL) images
+      <br/>
+    </p>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+﻿<!--
+/* ************************************************************************** */
+  SigCaptX-WizardControlPINPad.html
+   
+  Cross browser Signature Control test for PIN input
+
+  Demonstrates using the Wizard Control for PIN pad entry.
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardPINPad-PadDefs.js
+  
+  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  
+   v4.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SigCaptX-WizardPINPad</title>
+    <script src="wgssSigCaptX.js"></script>
+    <script src="base64.js"></script>
+    <script src="SigCaptX-WizardPINPad-Step1.js"></script>
+    <script src="SigCaptX-WizardPINPad-PadDefs.js"></script>
+    <script src="SigCaptX-SessionControl.js"></script>
+    <script src="SigCaptX-Utils.js"></script>
+    <script src="SigCaptX-Globals.js"></script>
+  </head>
+  <body onload="wizardEventController.body_onload()">
+    <div style="width:100%">
+      <h2>Test Wizard Control</h2>
+      <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;" ondblclick="displaySignatureDetails(sigObj)" title="Double-click a signature to display its details">
+      </div>
+      <br/>
+      <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" onClick="wizardEventController.start_stop(1)"
+        title="Starts/Stops a Wizard Script" />
+      <input type="checkbox" id="chkDisplayWizard" checked="checked"/>Display Wizard Control Window
+      <br/>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+﻿<!--
+/* ************************************************************************** */
+  PortCheck.htm
+   
+  This is a very simple test program designed to check whether the SigCaptX 
+  Server and Server processes are running.
+  
+  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  
+   v4.0
+   
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<script src="wgssSigCaptX.js"></script>
+<script src="base64.js"></script>
+
+<script type="text/javascript" id="myscript_1">
+
+function print(txt) {
+  var txtDisplay = document.getElementById("txtDisplay");
+  if("CLEAR" == txt) 
+  {
+    txtDisplay.value = "";
+  }
+  else 
+  {
+    txtDisplay.value += txt + "\n";
+    txtDisplay.scrollTop = txtDisplay.scrollHeight; // scroll to end
+  }
+}
+
+var port;
+// pass the starting service port  number as configured in the registry
+var wgssSignatureSDK;
+
+function onload()
+{
+  print("CLEAR");
+  restartSession();
+}
+
+function restartSession()
+{
+  print("Detecting SigCaptX");
+  port = document.getElementById("portText").value;
+  wgssSignatureSDK = new WacomGSS_SignatureSDK(onDetectRunning, port);
+  function onDetectRunning()
+  {
+    print("SigCaptX detected");
+    clearTimeout(timeout);
+  }
+
+  var timeout = setTimeout(timedDetect, 1500);
+  function timedDetect() 
+  {
+    if (wgssSignatureSDK.running) 
+    {
+      print("SigCaptX detected");
+    } 
+    else 
+    {
+      if(wgssSignatureSDK.service_detected)
+      {
+        print("SigCaptX service detected, but not the server");
+      }
+      else
+      {
+        print("SigCaptX service not detected");
+      }
+    }
+  }
+}
+
+</script>
+
+</head>
+<body onload="onload()">
+<h1>SigCaptX Port Check</h1>
+<br/>
+Service port: <input type="text" id="portText" value="8000">
+<input type="button" id="btnCheck" value="Check Service" style="width:35mm" onClick="restartSession()" title="Detects SigCaptX" /><br/>
+<textarea cols="125" rows="15" id="txtDisplay"></textarea>
+</body>
+</html> 
+
