@@ -152,3 +152,10 @@ For example here is the output from an in-house test:
 To see the saved signature B64 value go to: https://asp-sig-demo.azurewebsites.net/4d8839ad-f8e3-399d-cf77-7e174eb5ccc1.txt
 
 Double-click the captured signature image on the web site to display the signature details.
+
+### NodeJS and PHP samples
+
+Separate Readme instruction files are provided in the NodeJS and PHP folders for installing NodeJs/PHP and running their respective sample code.    
+Both samples are very straightforward and operate using localhost - they capture a signature and output it to an image file.  
+The PHP sample uses Apache as its Web server.  
+
