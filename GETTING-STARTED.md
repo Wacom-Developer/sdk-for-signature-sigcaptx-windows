@@ -9,13 +9,13 @@ To test the samples, use a Wacom device such as an STU-500 or a pen/tablet devic
 To use a pen/tablet device you will need to install the Wacom driver which provides the wintab interface used by the Signature Library.
 See the FAQs for [tablet installation](http://will-docs.westeurope.cloudapp.azure.com/faqs/docs/q-tablet/tablet-installation)
 
-## Download the SDK
+## Download the Wacom Ink SDK for signatures
 
 Download the SDK from https://developer.wacom.com/developer-dashboard
 
 * login using your Wacom ID
 * Select **Downloads for signature**
-* Download **Signature SDK for Windows Desktop**
+* Download **Wacom Ink SDK for signature for Windows Desktop**
 * Accept the End User License Agreement to use the SDK
 
 The downloaded Zip file contains the SDK with documentation.

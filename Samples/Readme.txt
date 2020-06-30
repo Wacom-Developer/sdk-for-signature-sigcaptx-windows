@@ -1,6 +1,6 @@
 SIGCAPTX RELEASE NOTES
 
-SigCaptX is the codename for the cross-browser Signature SDK replacement for Internet Explorer's ActiveX browser support. Using only javascript and JSONP on the browser side, SigCaptX provides full Signature SDK functionality to the browser. SigCaptX is targeted to work on Internet Explorer 8 and higher, Firefox, Chrome and Edge and supports both HTTP and HTTPS webpages.
+SigCaptX is the codename for the cross-browser Wacom Ink SDK for signature replacement for Internet Explorer's ActiveX browser support. Using only javascript and JSONP on the browser side, SigCaptX provides full SDK functionality to the browser. SigCaptX is targeted to work on Internet Explorer 8 and higher, Firefox, Chrome and Edge and supports both HTTP and HTTPS webpages.
 
 Pre-requisite: A Windows PC running Windows 7 or later.
 

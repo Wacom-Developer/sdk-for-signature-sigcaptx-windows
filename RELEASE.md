@@ -1,4 +1,4 @@
-# SigCaptX Windows
+# Wacom Ink SDK for signature - SigCaptX Windows
 
 ## Version 1.23.2
 
