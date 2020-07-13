@@ -1,0 +1,85 @@
+import React from 'react';
+
+const btnStyle = {
+	height: "15mm",
+  width: "35mm",
+  fontSize: "20px",
+}
+
+const textStyle = {
+  textAlign: "left",
+  marginLeft: "10px",
+}
+
+class RadButton extends React.Component {
+  render()
+  {
+    return (
+      <div>
+      <input type="radio" name="buttontype" id={this.props.radioId} defaultValue="local" checked={this.props.checked}/>
+      <label for={this.props.radioId} >{this.props.labeltext}</label>
+      </div>
+    );
+  }
+}
+
+class ChkBox extends React.Component {
+  render()
+  {
+    return (
+			<div>
+				<input type="checkbox" id={this.props.id} defaultChecked={this.props.defaultChecked}/>
+				<label for={this.props.id} >{this.props.labeltext}</label>
+			</div>
+    );
+  }
+}
+
+class App extends React.Component {
+  render() 
+  {
+    return (
+      <div className="App">
+        <div style={{width:"100%"}}>
+        <h2 style={textStyle}>SigCaptX Wizard Control Sample</h2>
+        <table style={{padding: "10px 10px", cellspacing: "30"}}>
+        <tbody>
+          <tr>  
+            <td rowSpan="2">
+              <div id="imageBox" className="boxed" style={{height: "70mm", width: "120mm", border: "1px solid #d3d3d3"}}></div>
+            </td>
+            <td>
+              <input type="button" id="btnStartStopWizard" value="Start Wizard" style={btnStyle} onClick={window.wizardEventController.start_stop} title="Starts/Stops a Wizard Script"/>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      <table>
+      <tbody>
+
+      <h3 style={textStyle}>Options</h3>
+
+      <p style={textStyle}>
+				<ChkBox id="chkDisplayWizard" labeltext="Display Wizard Control Window" defaultChecked="true"/>
+				<ChkBox id="chkLargeCheckbox" labeltext="Large size checkbox"/>
+				<ChkBox id="chkSigText" labeltext="Output sigtext to browser text window"/>
+      </p>
+
+      <h3 style={textStyle}>Button type</h3>
+
+      <p style={textStyle}>
+        <RadButton labeltext="Use standard buttons" radioId="standard" checked="checked"/>
+        <RadButton labeltext="Display UTF-8 text (e.g. for languages using logograms)" radioId="utf8"/>     
+        <RadButton labeltext="Use remote (URL) images" radioId="remote"/>
+        <br/>
+      </p>
+        <textarea style={{padding: "10px 10px", marginLeft: "10px"}} cols="125" rows="15" id="txtDisplay"></textarea>
+      </tbody>
+      </table>
+      </div>
+      </div>
+    );
+  }
+}
+
+export default App;
