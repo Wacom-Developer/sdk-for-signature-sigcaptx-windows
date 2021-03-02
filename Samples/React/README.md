@@ -1,8 +1,17 @@
-# React Samples for SigCaptX
+# React Samples for SigCaptX for Windows
 
 ## Download the SDK
 
+The Signature SDK and SigCaptX library will need to be installed on your local (client) machine.  
+The Signature SDK must also be installed on your server (does not apply for testing on localhost). 
+ 
+Please note that the NodeJS server-side code relies on the Signature SDK being installed on the server as well.   
+This NodeJS sample has only been tested with a Windows-based server and will not currently work with a Linux server. 
+
 Please see the GETTING-STARTED document in the home folder for instructions on installing the Signature SDK and SigCaptX library and licence.
+
+The instructions below are appropriate for testing the sample on a local PC using localhost.  
+When testing with a remote server the URL for running it will need to be modified appropriately. 
 
 ## Download NodeJS
 
