@@ -1,6 +1,6 @@
 # NodeJS Sample for SigCaptX for Windows
 
-## Download the SDK
+## 1. Download the SDK
 
 The Signature SDK and SigCaptX library will need to be installed on your local (client) machine.  
 The Signature SDK must also be installed on your server (does not apply for testing on localhost). 
@@ -8,25 +8,26 @@ The Signature SDK must also be installed on your server (does not apply for test
 Please note that the NodeJS server-side code relies on the Signature SDK being installed on the server as well.   
 This NodeJS sample has only been tested with a Windows-based server and will not currently work with a Linux server. 
 
-Please see the GETTING-STARTED document in the home folder for instructions on installing the Signature SDK and SigCaptX library and licence.
+Please see the GETTING-STARTED document in the root directory of this folder system for instructions on installing the Signature SDK and SigCaptX library and licence.
 
 The instructions below are appropriate for testing the sample on a local PC using localhost.  
-When testing with a remote server the URL for running it will need to be modified appropriately. 
+If testing with a remote server items 2 to 4 must be carried out on the server instead.
 
-## Download NodeJS
+## 2. Download NodeJS
 
-Install Node.js from https://nodejs.org/en/download/.  The latest release at time of writing (June 2020) is 12.18.0.  
+Install Node.js from https://nodejs.org/en/download/.  The latest release at time of writing (March 2021) is 14.16.0.  
+When installing on a server please make sure that the Windows Firewall allows Node.js to pass through it and that port 3000 is open for incoming requests (you may need to create a new Inbound rule for this).   
 
-## Install the NodeJS sample code
+## 3. Install the NodeJS sample code
 
 1. Extract the SigCaptX NodeJS sample code to your chosen directory.  This should create a folder a directory structure as follows:
 
-        NodeJS/SigCapture/public/js
-        NodeJS/SigCapture/public/images
+        NodeJS/public/js
+        NodeJS/public/images
 
     Please create the “images” folder if it doesn’t exist and make sure that it has write permissions. 
 
-2. Start a command prompt and change directory to the “SigCapture” folder which was created
+2. Start a command prompt and change directory to the “NodeJS” folder which was created
 
 3. Run “npm install” (see note 1 below).  
 
@@ -39,7 +40,7 @@ npm install  --global --production windows-build-tools
 Then run “npm install” again.  
 
 
-## Start the NodeJS server and run the sample
+## 4. Start the NodeJS server and run the sample
 
 Run “node formserver.js” - this should open up the sample automatically in your default browser.
 
