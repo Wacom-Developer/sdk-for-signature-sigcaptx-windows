@@ -1,5 +1,6 @@
-﻿<%@ Page Title="SigCaptX Sample" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="ASP_Sample._Default" %>
-
+﻿<!--
+<%@ Page Title="SigCaptX Sample" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="ASP_Sample._Default" %>
+-->
  <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" style="margin: 0px; width: 770px; height:100%" runat="server">
 
     <!-- Load the sigcaptX JS -->
@@ -102,7 +103,7 @@
                if(wgssSignatureSDK.ResponseStatus.OK == status)
                {
                  // Insert license here:
-                 sigCtl.PutLicence("AgAkAEy2cKydAQVXYWNvbQ1TaWduYXR1cmUgU0RLAgKBAgJkAACIAwEDZQA", onSigCtlPutLicence);
+                  sigCtl.PutLicence("<<license>>", onSigCtlPutLicence);
                }
                else
                {
