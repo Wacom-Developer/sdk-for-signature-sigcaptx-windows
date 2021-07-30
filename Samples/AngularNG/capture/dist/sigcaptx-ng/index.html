@@ -1,0 +1,59 @@
+<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>SigCaptX Capture - Angular NG</title>
+  <link rel="stylesheet" href="styles.31d6cfe0d16ae931b73c.css"></head>
+  <body>
+    <div style="width:100%">
+      <h2>Wacom Cross-browser Signature Capture for Angular NG</h2>
+      <table style="padding: 10px 20px;">
+        <tbody><tr>
+          <td rowspan="3">
+            <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;" ondblclick="displaySignatureDetails(sigObj)" title="Double-click a signature to display its details">
+            </div>
+          </td>
+          <td style="padding: 10px 20px;">
+            <btn-capture></btn-capture>
+          </td>
+          <td style="padding: 10px 20px;">
+            <btn-verify></btn-verify>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 20px;">
+            <btn-clear></btn-clear>
+          </td>
+          <td style="padding: 10px 20px;">
+            <btn-licinfo></btn-licinfo>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 20px;">
+            <btn-restore></btn-restore>
+          </td>
+          <td style="padding: 10px 20px;">
+            <btn-displaysig></btn-displaysig>
+          </td>
+        </tr>
+      </tbody></table>
+      <table style="padding: 10px 20px;">
+        <tbody><tr>
+        <td>Data included in the hash:</td>
+        </tr>
+        <tr>
+          <td>
+          First name: <input type="text" id="fname" value="John">
+          </td>
+          <td>
+          Last name: <input type="text" id="lname" value="Smith">
+          </td>
+        </tr>
+      </tbody></table>
+      <h3>Options</h3>
+      <input type="checkbox" id="chkUseB64Image">Use base-64 signature image
+      <chk-showsigtext></chk-showsigtext>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+      <br>SigText:<br>
+      <textarea cols="125" rows="15" id="txtSignature"></textarea>
+    </div>
+  <script src="runtime.2e47fc0e1252a2d58805.js" defer></script><script src="polyfills.962e49c5b4e3885226f7.js" defer></script><script src="main.0058a3f97ed300b89745.js" defer></script>
+</body></html>

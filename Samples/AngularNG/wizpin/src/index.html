@@ -1,0 +1,35 @@
+﻿<!--
+/* ************************************************************************** */
+  index.html
+   
+  Cross browser Signature Control test for PIN input using Angular NG
+
+  Demonstrates using the Wizard Control for PIN pad entry.
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardPINPad-PadDefs.js
+  
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
+  
+   v1.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SigCaptX-WizardPINPad</title>
+  </head>
+  <body>
+    <div style="width:100%">
+      <h2>Test Wizard Control</h2>
+      <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;" title="Double-click a signature to display its details">
+      </div>
+      <br/>
+      <btn-startstop></btn-startstop>
+      <input type="checkbox" id="chkDisplayWizard" checked="checked"/>Display Wizard Control Window
+      <br/>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+    </div>
+  </body>
+</html>
