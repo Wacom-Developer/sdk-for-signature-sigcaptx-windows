@@ -1,0 +1,61 @@
+﻿<!--
+/* ************************************************************************** */
+  index.html
+   
+  Cross browser Wizard Control sample for Typescript showing how to use the following features:
+        Standard signature capture (using sigCtl)
+        Checkbox (with an option for a larger size)
+    Outputting Sigtext value to the browser text box
+    UTF8 text on buttons
+    Buttons created from images downloaded from a Web site    
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardCheckbox-PadDefs.js
+  
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
+  
+   v1.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<html>
+<head>
+    <title>Cross-browser wizard sample using Typescript</title>
+    <script src="wgssSigCaptX.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/systemjs/0.19.22/system.js"></script>
+    <script type="text/javascript">
+        System.defaultJSExtensions = true;
+        System.import('sigcaptx')
+    </script>
+</head>
+  <body>
+    <div style="width:100%">
+      <h2>Test Wizard Control</h2>
+      <table style="padding: 10px 10px;" cellspacing="30">
+        <tr>  
+          <td rowspan="2">
+            <div id="imageBox" class="boxed" style="height:80mm;width:120mm; border:1px solid #d3d3d3;"></div>
+          </td>
+          <td>
+            <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" title="Starts/Stops a Wizard Script"/>
+          </td>
+        </tr>
+      </table>
+        
+    <h3>Options</h3>
+      <input type="checkbox" id="chkDisplayWizard" checked="checked"/>Display Wizard Control Window
+      <input type="checkbox" id="chkLargeCheckbox"/>Large size checkbox
+      <input type="checkbox" id="chkSigText"/>Output sigtext to browser text window <br/><br/>
+    Button options: 
+    <p style="margin-left: 40px">
+      <input type="radio" name="buttontype" id="standard" value="standard" checked="checked">Use standard buttons<br/>
+      <input type="radio" name="buttontype" id="utf8" value="utf8"/>Display UTF-8 text (e.g. for languages using logograms)<br/>
+      <input type="radio" name="buttontype" id="remote" value="remote"/>Use remote (URL) images
+      <br/>
+    </p>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,86 @@
+<!--
+/* ************************************************************************** */
+  index.html
+   
+  Cross browser Signature Capture test for Typescript
+
+  1. Demonstrates standard Signature Capture using SigCaptX with the DynamicCapture method call
+  
+  2. If B64 option selected demonstrates standard signature capture using SigCaptX and renderBitmap returning a base64 image string
+  
+  3. The SigText property can be used to save/restore a signature
+  
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
+  
+   v1.0
+   
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>SigCaptX-Capture</title>
+    <script type="text/javascript" src="wgssSigCaptX.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/systemjs/0.19.22/system.js"></script>
+    <script type="text/javascript">
+        System.defaultJSExtensions = true;
+        System.import('sigcaptx')
+    </script>
+  </head>
+  <body>
+    <div style="width:100%">
+      <h2>Cross-browser Signature Capture using Typescript</h2>
+      <table style="padding: 10px 20px;">
+        <tr>
+          <td rowspan="3">
+            <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;" id="imagebox" title="Double-click a signature to display its details">
+            </div>
+          </td>
+          <td  style="padding: 10px 20px;">
+            <input type="button" value="Capture" id="capture" style="height:10mm;width:35mm" title="Starts signature capture" />
+          </td>
+          <td style="padding: 10px 20px;">
+            <input type="button" value="Verify" id="verify" style="height:10mm;width:35mm" title="Checks the signature hash" />
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 20px;">
+            <input type="button" value="Clear" id="clear" style="height:10mm;width:35mm" title="Clears the signature" />
+          </td>
+          <td style="padding: 10px 20px;">
+            <input type="button" value="License Info" id="licinfo" style="height:10mm;width:35mm" title="Displays the Help About box" />
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 20px;">
+            <input type="button" value="Restore" id="restore" disabled style="height:10mm;width:35mm" 
+            title="Restores the signature from the SigText data. To use this function please tick <Output SigText to form>" />
+          </td>
+          <td style="padding: 10px 20px;">
+            <input type="button" value="Signature Details" id="sigdetails" style="height:10mm;width:35mm" title="Displays the Help About box" />
+          </td>
+        </tr>
+      </table>
+      <table style="padding: 10px 20px;">
+        <tr>
+        <td>Data included in the hash:</td>
+        </tr>
+        <tr>
+          <td>
+          First name: <input type="text" id="fname" value="John"/>
+          </td>
+          <td>
+          Last name: <input type="text" id="lname" value="Smith"/>
+          </td>
+        </tr>
+      </table>
+      <h3>Options</h3>
+      <input type="checkbox" id="chkUseB64Image"/>Use base-64 signature image
+      <input type="checkbox" id="chkShowSigText"/>Output SigText to form <br/><br/>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+      <br/>SigText:<br/>
+      <textarea cols="125" rows="15" id="txtSignature"></textarea>
+    </div>
+  </body>
+</html>
