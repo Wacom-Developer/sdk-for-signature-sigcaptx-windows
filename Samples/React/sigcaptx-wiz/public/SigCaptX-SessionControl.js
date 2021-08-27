@@ -5,9 +5,9 @@
   of the wizard session. It also contains the calls to the pad and screen definition
   functions in SigCaptX-Wizard-PadDefs.js 
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
   
-   v4.0
+   v1.1  Use React state objects for updating the DOM
   
 ***************************************************************************/
 
@@ -107,7 +107,7 @@ var wizardEventController =
   {
     if(wgssSignatureSDK.ResponseStatus.OK == status)
     {
-      var visible = (true == document.getElementById("chkDisplayWizard").checked);
+      var visible = ChkBoxDisplayWizard.state.checked;
       print("Enabling licence");
       wizCtl.PutLicence(LICENCEKEY, onWizCtlPutLicence);
     }
@@ -128,7 +128,7 @@ var wizardEventController =
     if(callbackStatusOK("WizCtl PutLicence", status) == true)
     {
      //print("License set OK - now checking chkDisplayWizard");
-      var visible = (true == document.getElementById("chkDisplayWizard").checked);
+      var visible = ChkBoxDisplayWizard.state.checked;
       wizCtl.PutVisibleWindow(visible, onPutVisibleWindow);
     }
   }
@@ -181,41 +181,35 @@ var wizardEventController =
       /* Note that this code is also used by the PIN pad sample which doesn't have the user options so make sure
          the tags exist first */
       
-      if (document.getElementById("chkLargeCheckbox") != null)
-      {
-        if (document.getElementById("chkLargeCheckbox").checked)
-        {
-          chkBoxSize = checkSizeSelection.LARGE;
-        }
-        else
-        {
-          chkBoxSize = checkSizeSelection.STANDARD;
-        }
-      }
+			if (ChkBoxLargeCheckBox.state.checked)
+			{
+				chkBoxSize = checkSizeSelection.LARGE;
+			}
+			else
+			{
+				chkBoxSize = checkSizeSelection.STANDARD;
+			}
     
       pad = new CPad_STU(width, height, chkBoxSize);
       
       /* Decide what parameter to pass to Screen1() in SigCaptX-WizardCheckbox-PadDefs.js 
          This depends on what the user has selected on the HTML form. Make sure the tags exist first */
   
-      if (document.getElementById("utf8") != null)
-      {
-        if (document.getElementById("utf8").checked)
-        {
-          buttonTextSource = textSource.UTF8;
-        }
-        else
-        {
-					if (document.getElementById("remote").checked)
-					{
-						buttonTextSource = textSource.REMOTE;
-					}
-					else
-					{
-						buttonTextSource = textSource.STANDARD;
-					}
-        }
-      }
+			if (RadioButtonType.state.optionSelected === "utf8")
+			{
+				buttonTextSource = textSource.UTF8;
+			}
+			else
+			{
+				if (RadioButtonType.state.optionSelected === "remote")
+				{
+					buttonTextSource = textSource.REMOTE;
+				}
+				else
+				{
+					buttonTextSource = textSource.STANDARD;
+				}
+			}
       //print("Calling screen1 with button source " + buttonTextSource);
       display_1 = new screen_Display1(pad, buttonTextSource);
       if (numScreenDisplays >= 2)
@@ -248,12 +242,9 @@ function actionWhenRestarted(callback)
   pad = null;
   
   var wizCtlTest = null;
-  var imageBox = document.getElementById("imageBox");
-  
-  if(null != imageBox.firstChild)
-  {
-    imageBox.removeChild(imageBox.firstChild);
-  }
+	
+	ImageBox.setState({imageSrc:""});
+
   var timeout = setTimeout(timedDetect, TIMEOUT);
   
   // pass the starting service port  number as configured in the registry
@@ -418,7 +409,7 @@ function actionWhenRestarted(callback)
 function stopScript()
 {
   scriptIsRunning = false;
-  document.getElementById("btnStartStopWizard").value = "Start Wizard";
+  ButtonStartStopWizard.setState({value: "Start Wizard"});
   if(null != wizCtl)
   {
     wizCtl.Reset(onReset);

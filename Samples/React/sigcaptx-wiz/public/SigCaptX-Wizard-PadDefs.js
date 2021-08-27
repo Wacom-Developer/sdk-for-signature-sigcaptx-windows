@@ -5,9 +5,9 @@
   and the objects which are to be displayed on each screen of the wizard sequence.
   The object classes are defined in SigCaptX-Wizard-Main.js
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
   
-   v4.0
+   v1.1  Use React state objects for updating the DOM
   
 ***************************************************************************/
 
@@ -935,7 +935,7 @@ function setButtonImageFile(buttonTextSource, currentPadRange, imagePrefix)
   var imageFile;
   var currDir = getCurrentDir();
  
-  //print("setButtonImageFile: " + buttonTextSource + " "+ currentPadRange + " " + imagePrefix);
+  print("setButtonImageFile: " + buttonTextSource + " "+ currentPadRange + " " + imagePrefix);
   
   if (buttonTextSource == textSource.LOCAL)
   {

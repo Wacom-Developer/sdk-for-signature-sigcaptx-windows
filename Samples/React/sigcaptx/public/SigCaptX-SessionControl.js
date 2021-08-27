@@ -12,11 +12,11 @@
 ***************************************************************************/
 
 function bodyOnLoad()
-  {
-    clearTextBox();
-    actionWhenRestarted();
+{
+	clearTextBox();
+	actionWhenRestarted();
 	enableRestoreButton();
-  }
+}
   
   
 /* wizardEventController is the main event handler for the wizard script */
@@ -135,7 +135,6 @@ var wizardEventController =
   {
     if(callbackStatusOK("WizCtl PutLicence", status) == true)
     {
-     //print("License set OK - now checking chkDisplayWizard");
       var visible = (true == document.getElementById("chkDisplayWizard").checked);
       wizCtl.PutVisibleWindow(visible, onPutVisibleWindow);
     }
@@ -231,7 +230,6 @@ var wizardEventController =
           }
         }
       }
-      //print("Calling screen1 with button source " + buttonTextSource);
       display_1 = new screen_Display1(pad, buttonTextSource);
       if (numScreenDisplays >= 2)
       {
@@ -241,7 +239,6 @@ var wizardEventController =
       {
         display_3 = new screen_Display3(pad, buttonTextSource);
       }
-     //print("Pad type: " + pad.Type);
       step1();
     }
     else

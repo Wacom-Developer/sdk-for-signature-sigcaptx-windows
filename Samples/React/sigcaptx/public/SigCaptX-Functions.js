@@ -4,23 +4,21 @@
   This contains various JavaScript functions used by the 
 	SigCaptX React code sample for signature capture
 	
-  Copyright (c) 2020 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
   
-   v1.0
+   v2.0  Uses React state objects to reference the DOM instead of going direct
   
 ***************************************************************************/
 //  This function enables the Restore button if the user has selected the option to output SigText
 function enableRestoreButton()
 {
-  var btnRestore = document.getElementById("Restore");
-    
-  if (document.getElementById("chkShowSigText").checked)
+  if (ChkBoxSigText.state.checked)
   {
-    btnRestore.disabled = false;
+		Button.setState({disabled:false});
   }
   else
   {
-    btnRestore.disabled = true;
+		Button.setState({disabled:true});
   }
 }
 
@@ -57,8 +55,9 @@ function capture()
   // If the hash value has been calculated successfully next steps is to capture the signature
   function onGetInitialHash()
   {
-    var firstName = document.getElementById("fname").value;
-    var lastName = document.getElementById("lname").value;
+		// Get the first and last names from their respective state objects
+    var firstName = FirstName.state.firstName;
+    var lastName = LastName.state.lastName;
     var fullName = firstName + " " + lastName;
     
     dynCapt.Capture(sigCtl, fullName, "Document Approval", hash, null, onDynCaptCapture);
@@ -81,7 +80,7 @@ function capture()
           print("Signature captured successfully");
 
           /* Set the RenderBitmap flags as appropriate depending on whether the user wants to use a picture image or B64 text value */
-          if (document.getElementById("chkUseB64Image").checked)
+          if (ChkBoxB64.state.checked)
           {
              var outputFlags = wgssSignatureSDK.RBFlags.RenderOutputBase64 | wgssSignatureSDK.RBFlags.RenderColor32BPP;
           } 
@@ -119,8 +118,7 @@ function capture()
   {
     if(wgssSignatureSDK.ResponseStatus.OK == status) 
     {
-      var imageBox = document.getElementById("imageBox");
-      var useB64Image = document.getElementById("chkUseB64Image").checked;
+      var useB64Image = ChkBoxB64.state.checked;
 
       /* If the user wants to demonstrate the use of B64 image strings then define an image and set its source to the B64 string*/
       if (useB64Image)
@@ -128,30 +126,16 @@ function capture()
          print("base64_image:>"+bmpObj+"<");
          img = new Image();
          img.src = "data:image/png;base64," + bmpObj;
-  
-         if(null == imageBox.firstChild)
-         {
-           imageBox.appendChild(img);
-         }
-         else
-         {
-            imageBox.replaceChild(img, imageBox.firstChild);
-         }
+				 ImageBox.setState({ imageSrc: img.src });
       }
       else
       {
          /* If RenderBitmap generated a standard image (picture) then just place that picture in the img control on the HTML form */
-         if(null == imageBox.firstChild)
-         {
-           imageBox.appendChild(bmpObj.image);
-         }
-         else
-         {
-            imageBox.replaceChild(bmpObj.image, imageBox.firstChild);
-         }
+				 ImageBox.setState({ imageSrc: bmpObj.image.src });
       }
+
       /* If the user chose the option to show the SigText value on the form then call the function to do this */
-      if (document.getElementById("chkShowSigText").checked)
+      if (ChkBoxSigText.state.checked)
       {
          sigObjV.GetSigText(onGetSigText);
       }
@@ -167,14 +151,19 @@ function capture()
   {
     if(wgssSignatureSDK.ResponseStatus.OK == status)
     {
-      var txtSignature = document.getElementById("txtSignature");
-      txtSignature.value = text;
+			TextSignature.setState({txtSignature: text});
+			// Keep the SigText value in a global variable so it can be
+			// accessed later by the Restore option if needed without
+			// having to go via the state object itself
+			sigText = text;
+			console.log("sigText stored");
     }
     else 
     {
       print("Signature Render Bitmap error: " + status);
     }
   }
+	return "Captured";
 }
 
 /* This function displays the details of the signature in the text box on the HTML form */
@@ -274,7 +263,7 @@ function GetHash(hash, callback)
     if(wgssSignatureSDK.ResponseStatus.OK == status) 
     {
       var vFname = new wgssSignatureSDK.Variant();
-      vFname.Set(document.getElementById("fname").value);
+      vFname.Set(FirstName.state.firstName);
       hash.Add(vFname, onAddFname);
     } 
     else 
@@ -288,7 +277,7 @@ function GetHash(hash, callback)
     if(wgssSignatureSDK.ResponseStatus.OK == status) 
     {
       var vLname = new wgssSignatureSDK.Variant();
-      vLname.Set(document.getElementById("lname").value);
+      vLname.Set(LastName.state.lastName);
       hash.Add(vLname, onAddLname);
     } 
     else 
@@ -381,12 +370,7 @@ function verifySignedData()
 /* This function clears the current signature image from the signature control on the form */
 function clearSignature()
 { 
-	print ("Clearing existing signature");
-    var imageBox = document.getElementById("imageBox");
-    if(null != imageBox.firstChild)
-    {
-      imageBox.removeChild(imageBox.firstChild);
-    }
+		ImageBox.setState({imageSrc: ""});
     if (null == sigObj)
     {
       actionWhenRestarted(window.ClearSignature);  // See SigCaptX-SessionControl.js
@@ -411,7 +395,6 @@ function clearSignature()
 /* This function takes the SigText value currently displayed on the HTML form and uses it to recreate the signature image shown in the signature control tag on the form */
 function setSignatureText()
 {
-	print ("Restoring signature from SigText" );
     if(null == window.sigObj)
     {
       print ("sigObj is null, unable to restore");
@@ -419,7 +402,8 @@ function setSignatureText()
       return;
     }
     /* First of all take the SigText value currently displayed in the txtSignature field on the form and assign it to the sigObj object */
-    var text = document.getElementById("txtSignature").value;
+		console.log("Restoring signature from sigText: " + sigText);
+		var text = sigText; 
     window.sigObj.PutSigText(text, onPutSigText);
   
     function onPutSigText(sigObjV, status)
@@ -428,9 +412,8 @@ function setSignatureText()
       {
         /* Now that the sigObj has been populated with the signature data (via the SigText) it can be used to geberate a signature image */
         var outputFlags = wgssSignatureSDK.RBFlags.RenderOutputPicture | wgssSignatureSDK.RBFlags.RenderColor24BPP;
-        var imageBox = document.getElementById("imageBox");
         
-        sigObj.RenderBitmap(BITMAP_IMAGEFORMAT, imageBox.clientWidth, imageBox.clientHeight, BITMAP_INKWIDTH, BITMAP_INKCOLOR, BITMAP_BACKGROUNDCOLOR, outputFlags, BITMAP_PADDING_X, BITMAP_PADDING_Y, onRenderBitmapFromSigText);
+        sigObj.RenderBitmap(BITMAP_IMAGEFORMAT, ImageBox.state.width, ImageBox.state.height, BITMAP_INKWIDTH, BITMAP_INKCOLOR, BITMAP_BACKGROUNDCOLOR, outputFlags, BITMAP_PADDING_X, BITMAP_PADDING_Y, onRenderBitmapFromSigText);
       }
       else
       {
@@ -448,15 +431,7 @@ function setSignatureText()
     {
       if(wgssSignatureSDK.ResponseStatus.OK == status) 
       {
-        var imageBox = document.getElementById("imageBox");
-        if(null == imageBox.firstChild)
-        {
-          imageBox.appendChild(bmpObj.image);
-        }
-        else
-        {
-          imageBox.replaceChild(bmpObj.image, imageBox.firstChild);
-        }
+				ImageBox.setState({imageSrc:bmpObj.image.src});
       } 
       else 
       {

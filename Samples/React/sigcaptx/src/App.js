@@ -4,9 +4,9 @@
   This React script renders the HTML form which allows the user to start  
   the signature capture and choose various options.
 	
-  Copyright (c) 2020 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
   
-   v1.0
+   v2.0  Use React state objects for updating the DOM
   
 ***************************************************************************/
 import React from 'react';
@@ -15,6 +15,12 @@ import './App.css';
 const textStyle = {
 	marginLeft: "15px",
 };
+
+const textBoxStyle = {
+	marginLeft: "15px",
+	padding:"10px 10px",
+	textAlign:"left"
+} 
 
 const btnStyle = {
 	height: "10mm",
@@ -27,26 +33,188 @@ const boxStyle = {
 	border: "1px solid #d3d3d3",
 };
 
-class Button extends React.Component {
+export class Button extends React.Component {
+	constructor(props) {
+		super(props);
+    this.state = {disabled: false};
+  }
+	handleOnChange(event) {
+		if (this.props.id == "Restore")
+		{
+			// Disable the Restore button when required
+			this.setState({
+				disabled: event.target.value
+			})
+		}
+  }
   render()
   {
     return (
 			<div>
-				<input type="button" id={this.props.id} value={this.props.value} style={btnStyle} onClick={this.props.funcName} />
+				<input type="button" id={this.props.id} value={this.props.value} disabled={this.state.disabled} style={btnStyle} 
+					onChange={(event) => this.handleOnChange(event)}  
+					onClick={this.props.funcName} />
 			</div>
     );
   }
 }
 
-class TextBox extends React.Component {
+export class FirstName extends React.Component {
+	constructor(props) {
+		super(props);
+    this.state = {firstName: "John"};
+  }
+	handleOnChange(event) {
+    this.setState({
+      firstName: event.target.value
+    })
+  }
+  render()
+  {
+    return (
+			<div>
+				First name: <input type="text" id="fname" onChange={(event) => this.handleOnChange(event)} defaultValue={this.state.firstName}/>
+			</div>
+    );
+  }
+}
+
+
+export class LastName extends React.Component {
+	constructor(props) {
+		super(props);
+    this.state = {lastName: "Smith"};
+  }
+	handleOnChange(event) {
+    this.setState({
+      lastName: event.target.value
+    })
+  }
+  render()
+  {
+    return (
+			<div>
+				Last name: <input type="text" id="lname" onChange={(event) => this.handleOnChange(event)} defaultValue={this.state.lastName}/>
+			</div>
+    );
+  }
+}
+
+export class TextSignature extends React.Component {
+	constructor(props) {
+		super(props);
+    this.state = {txtSignature: ""};
+  }
+	handleOnChange(event) {
+    this.setState({
+      txtSignature: event.target.value
+    })
+  }
 	render()
 	{
 		return(
-			<textarea cols="125" rows="15" id={this.props.id} style={{marginLeft:"15px", padding:"10px 10px", textAlign:"left"}}></textarea>
+			<textarea cols="125" rows="15" value={this.state.txtSignature} onChange={(event) => this.handleOnChange(event)} style={textBoxStyle}></textarea>
 		);
 	}
 }
-		
+
+// This is the class for the scrolling text area showing progress messages to the user
+export class UserMsgs extends React.Component {
+	constructor(props) {
+		super(props);
+    this.state = {
+			userMessage: ""
+		};
+		this.textLog = React.createRef();
+  }
+	
+	componentDidUpdate()
+	{
+		this.textLog.current.scrollTop = this.textLog.current.scrollHeight; // Auto-scrolls to the bottom
+	}
+	
+	handleOnChange(event) {
+    this.setState({
+      userMessage: event.target.value
+    })
+  }
+
+	render()
+	{
+		return(
+			<textarea ref={this.textLog} cols="125" rows="15" value={this.state.userMessage} onChange={(event) => this.handleOnChange(event)} style={textBoxStyle}/>
+		);
+	}
+}
+
+export class ImageBox extends React.Component {
+	
+	constructor(props) {
+		super(props);
+    this.state = {
+			imageSrc: "",
+			height:135,
+			width:230
+		};
+  }
+	handleOnChange(event) {
+    this.setState({
+			imageSrc: event.target.value
+    })
+		console.log("imageSrc changed");      
+  }
+	render()
+	{
+		return(
+			<div>
+				<img id="imageBox" className="boxed" src={this.state.imageSrc} style={boxStyle} onChange={(event) => this.handleOnChange(event)}/>
+			</div>
+		);
+	}
+}
+
+export class ChkBoxB64 extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = {checked: false}
+	}
+	handleOnChange(event) {
+		this.setState({
+			checked: event.target.value
+		})
+	}
+	render()
+	{
+		return(
+		<div>
+			<input type="checkbox" id="chkUseB64Image" onChange={(event) => this.handleOnChange(event)}/>Use base-64 signature image
+		</div>
+		);
+	}
+}
+
+export class ChkBoxSigText extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = {checked: false}
+	}
+	handleChange = () => {
+		this.state.checked = !this.state.checked;
+		window.enableRestoreButton(); // Enable or disable the Restore button
+	}
+	
+	render()
+	{
+		return(
+		<div>
+			<input type="checkbox" id="chkShowSigText" 
+				checked={this.props.checked} 
+				onChange={(event) => this.handleChange(event)} 
+				/>Output SigText to form
+		</div>
+		);
+	}
+}
 
 class App extends React.Component {
 	render() {
@@ -58,11 +226,10 @@ class App extends React.Component {
 			  <tbody>
 				<tr>
 				  <td rowSpan="3">
-						<div id="imageBox" className="boxed" style={boxStyle} onDoubleClick={window.displaySignatureDetails} title="Double-click a signature to display its details">
-					</div>
+						<ImageBox ref={ImageBox => { window.ImageBox = ImageBox }}/>
 					</td>
 					<td>
-						<Button value="Capture" funcName={window.capture} title="Starts signature capture" />
+						<Button value="Capture" funcName = {window.capture} title = "Starts signature capture" />
 					</td>
 					<td>
 						<Button value="Verify" funcName={window.verifySignedData} title="Checks the signature hash" />
@@ -78,7 +245,7 @@ class App extends React.Component {
 				</tr>
 				<tr>
 				  <td>
-						<Button value="Restore" id="Restore" funcName={window.setSignatureText} title="Restores the signature from the SigText data. To use this function please tick <Output SigText to form>" />
+						<Button value="Restore" id="Restore" funcName={window.setSignatureText} title="Restores the signature from the SigText data. To use this function please tick <Output SigText to form>" ref={Button => { window.Button = Button }}/>
 				  </td>
 				  <td>
 						<Button value="Signature Details" funcName={window.displaySignatureDetails} title="Displays capture details of the signature" />
@@ -94,10 +261,10 @@ class App extends React.Component {
 								<b>Data included in the hash:</b>
 							</td>
 							<td>
-								First name: <input type="text" id="fname" defaultValue="John"/>
+								<FirstName ref={FirstName => { window.FirstName = FirstName }}/>
 							</td>
 							<td>
-								Last name: <input type="text" id="lname" defaultValue="Smith"/>
+								<LastName ref={LastName => { window.LastName = LastName }}/>
 							</td>
 						</tr>
 					</tbody>
@@ -110,18 +277,19 @@ class App extends React.Component {
 								<b>Options:</b>
 							</td>
 							<td>
-								<input type="checkbox" id="chkUseB64Image"/>Use base-64 signature image
+								<ChkBoxB64 ref={ChkBoxB64 => { window.ChkBoxB64 = ChkBoxB64 }}/>
 							</td>
 							<td>
-								<input type="checkbox" id="chkShowSigText" onClick={window.enableRestoreButton}/>Output SigText to form
+								<ChkBoxSigText ref={ChkBoxSigText => { window.ChkBoxSigText = ChkBoxSigText }}/>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 				
-				<TextBox id="txtDisplay"/>
+				<UserMsgs ref={UserMsgs => { window.UserMsgs = UserMsgs }}/>
 				<br/>&nbsp;&nbsp;&nbsp;SigText:<br/>
-				<TextBox id="txtSignature"/>
+				<TextSignature id="txtSignature" ref={TextSignature => { window.TextSignature = TextSignature }}/>
+
 			</div>
 		</div>
 	  );

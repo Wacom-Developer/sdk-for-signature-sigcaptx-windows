@@ -5,9 +5,9 @@
   wizard session plus some global variables and functions for defining the object classes
   which are defined in SigCaptX-Wizard-PadDefs.js.
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
   
-  v4.0
+     v1.1  Use React state objects for updating the DOM
   
 ***************************************************************************/
 
@@ -208,7 +208,7 @@ function step1()
     if(callbackStatusOK("WizCtl PutFontCancel", status))
     {
       var buttonSource = getButtonSourceFromHTMLDoc();
-
+			
       if (buttonSource == textSource.STANDARD) 
       {
         // Set up font colours if required for colour pads
@@ -1040,7 +1040,7 @@ function getButtonSourceFromHTMLDoc()
 {
   var buttonSource = textSource.STANDARD;
 
-	if (document.getElementById("remote").checked)
+	if (RadioButtonType.state.optionSelected === 'remote')
 	{
 		buttonSource = textSource.REMOTE;
 	}
