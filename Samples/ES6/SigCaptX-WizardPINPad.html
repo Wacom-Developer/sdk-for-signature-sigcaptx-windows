@@ -1,0 +1,41 @@
+﻿<!--
+/* ************************************************************************** */
+  SigCaptX-WizardControlPINPad.html
+   
+  Cross browser Signature Control test for PIN input
+
+  Demonstrates using the Wizard Control for PIN pad entry.
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardPINPad-PadDefs.js
+  
+  Copyright (c) 2021 Wacom Co. Ltd. All rights reserved.
+  
+   v4.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SigCaptX-WizardPINPad</title>
+    <script src="wgssSigCaptX.js"></script>
+    <script src="base64.js"></script>
+    <script src="SigCaptX-WizardPINPad-PadDefs.js"></script>
+    <script src="SigCaptX-SessionControl.js"></script>
+    <script src="SigCaptX-Utils.js"></script>
+    <script src="SigCaptX-Globals.js"></script>
+  </head>
+  <body onload="WizSessionCtrl.body_onload()">
+    <div style="width:100%">
+      <h2>Test Wizard PIN Pad</h2>
+      <br/>
+      <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" onClick="WizSessionCtrl.start_stop(1)"
+        title="Starts/Stops a Wizard Script" />
+			<br/>
+      <input type="checkbox" id="chkDisplayWizard" checked="checked"/>Display Wizard Control Window
+      <br/><br/>
+      <textarea cols="125" rows="15" id="txtDisplay"></textarea>
+    </div>
+  </body>
+</html>
