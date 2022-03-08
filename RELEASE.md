@@ -1,8 +1,14 @@
 # Wacom Ink SDK for signature - SigCaptX Windows
 
-## Version 1.23.2
+## Version 1.24.3
 
 ## History
+
+* Release v1.24.3  09-Feb-2022
+    * Interim work-around for Chrome and Edge preflight request headers
+    
+* Release v1.23.3  29-Sep-2020
+    * Fix in SigCaptX installers to allow for accented characters in Window's user ID which causes problems with Firefox
 
 *  Release v1.23.2  23-Aug-2019
     * Rebuild Mozilla NSS tools with current source to counteract false positives in some AV engines
