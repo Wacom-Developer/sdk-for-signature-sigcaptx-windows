@@ -1,4 +1,4 @@
-﻿//==============================================================================
+//==============================================================================
 // wgssSigCaptX.js
 // Copyright (c) 2022 Wacom Co.,Ltd.
 //==============================================================================
@@ -322,7 +322,7 @@ var JSONreq =
 
 	getJSON: function(address, data, callback)
 	{
-		this.getJSON = (typeof fetch != 'undefined') ? this.getJSON_WebSocket : this.getJSON_GET_script;
+		this.getJSON = (typeof fetch != 'undefined' && /function\s+fetch\(\s*\)\s*\{\s*\[native\s+code\s*\]\s*\}/.test(Function.prototype.toString.call(fetch))) ? this.getJSON_WebSocket : this.getJSON_GET_script;
 		return this.getJSON(address, data, callback, true);
 	}
 };
