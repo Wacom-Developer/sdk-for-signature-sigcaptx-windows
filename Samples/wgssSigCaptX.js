@@ -322,7 +322,10 @@ var JSONreq =
 
 	getJSON: function(address, data, callback)
 	{
-		this.getJSON = (typeof fetch != 'undefined' && /function\s+fetch\(\s*\)\s*\{\s*\[native\s+code\s*\]\s*\}/.test(Function.prototype.toString.call(fetch))) ? this.getJSON_WebSocket : this.getJSON_GET_script;
+		var isIE = !!window.MSInputMethodContext && !!document.documentMode;
+		if (isIE) console.debug("Internet Explorer detected: using "+(this.secure?"https":"http")+" GET");
+
+		this.getJSON = !isIE ? this.getJSON_WebSocket : this.getJSON_GET_script;
 		return this.getJSON(address, data, callback, true);
 	}
 };
