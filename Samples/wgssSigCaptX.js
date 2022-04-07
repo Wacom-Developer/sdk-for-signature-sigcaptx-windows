@@ -319,10 +319,9 @@ var JSONreq =
 		});
 	},
 
-
 	getJSON: function(address, data, callback)
 	{
-		var isIE = !!window.MSInputMethodContext && !!document.documentMode;
+		var isIE = window.navigator.userAgent.indexOf('MSIE ') != -1 || window.navigator.userAgent.indexOf('Trident/') != -1;
 		if (isIE) console.debug("Internet Explorer detected: using "+(this.secure?"https":"http")+" GET");
 
 		this.getJSON = !isIE ? this.getJSON_WebSocket : this.getJSON_GET_script;
