@@ -637,13 +637,13 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
     {
       try
       {
-        if (server_data.status == 0)
+        if (typeof server_data.status === 'undefined' || server_data.status == 0)
         {
           setTimeout(sigsdkptr.keepAlive, 5000);//20000
         }
         else
         {
-          console.debug("keepalive: dead session, restarting"); 
+          console.debug("keepalive: dead session, restarting");
           sigsdkptr.session = 0;
           sigsdkptr.getPort();
         }
