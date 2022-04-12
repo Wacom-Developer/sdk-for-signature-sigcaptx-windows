@@ -332,6 +332,7 @@ var JSONreq =
 
 function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
 {
+  this.version = "1.25.4";
   this.running = false;
   this.session = null;
   this.service_detected = false;
