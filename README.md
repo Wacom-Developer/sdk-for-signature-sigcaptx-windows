@@ -25,14 +25,17 @@ To view the solution schematically:
 
 ![signature sigcaptx components](media/SigCaptX-Library.png)
 
-The general process is as follows:
+The general process is as follows: 
+ 
+*	The web browser loads an HTML page containing JavaScript application code from the web server. The application code includes the SDK framework required to access the localhost web server. 
+*	To perform Signature SDK functions, the application code calls the localhost server through the SDK framework. The framework functions either use a Websocket or make a JSONP HTTPS request to the localhost server and supply a dedicated callback function. The framework functions return immediately, leaving the server to run independently. 
+*	The server actions the framework function by calling the Signature SDK DLL. For example, in the case of signature capture the DLL performs the necessary i/o with the signature tablet. 
+*	On completion the server again uses the Websocket or uses the JSONP technique to start the callback function which was supplied in the request, passing the relevant return data. 
+*	The callback function retrieves the data and completes the operation. 
+*	For example, in the case of signature capture the HTML application calls the signature capture framework function. Its callback function calls the renderBitmap framework function to request the image of the signature. Its callback function displays the signature image in the html page.  
 
-*	The web browser loads an HTML page containing JavaScript application code from the web server. The application code includes the SigCaptX JavaScript library required to access the localhost web server.
-*	To perform signature library functions, the application code calls the localhost server through the SigCaptX JavaScript library. The library functions each make a JSONP HTTPS request to the localhost SigCaptX server and supply a dedicated callback function. The library functions return immediately, leaving the server to run independently.
-*	The server actions the library function by calling the Signature Library. For example, in the case of signature capture the DLL performs the necessary i/o with the signature tablet.
-*	On completion the server uses JSONP to start the callback function which was supplied in the request, passing the relevant return data.
-*	The callback function retrieves the data and completes the operation.
-*	For example, in the case of signature capture the HTML application calls the signature capture library function. Its callback function calls the renderBitmap library function to request the image of the signature. Its callback function then displays the signature image in the html page. 
+The use of Websocket or JSONP requests is transparent inside the SDK and makes no difference to SDK use.
+
 
 To illustrate, an html page creates the signature image display area:
 
@@ -50,8 +53,36 @@ function capture()
     actionWhenRestarted(window.Capture);   // See SigCaptX-SessionControl.js
     return;
   }
-  dynCapt.Capture(sigCtl, "John Smith", "Document Approval", null, null, onDynCaptCapture);
 
+  // Construct a hash object to contain the hash
+  var hash = new wgssSignatureSDK.Hash(onHashConstructor);
+  
+  function onHashConstructor(hashV, status)
+  {
+    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    {
+      GetHash(hash, onGetInitialHash);
+    }
+    else
+    {
+      print("Hash Constructor error: " + status);
+      if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+      {
+        print("Error: invalid session. Restarting the session.");
+        actionWhenRestarted(window.Capture);
+      }
+    }
+  }
+  
+  // If the hash value has been calculated successfully next steps is to capture the signature
+  function onGetInitialHash()
+  {
+    var firstName = document.getElementById("fname").value;
+    var lastName = document.getElementById("lname").value;
+    var fullName = firstName + " " + lastName;
+    
+    dynCapt.Capture(sigCtl, fullName, "Document Approval", hash, null, onDynCaptCapture);
+  }  // the callback function runs when signature capture completes (OK or Cancel)   
   function onDynCaptCapture(dynCaptV, SigObjV, status)
   {
     if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
@@ -71,13 +102,13 @@ function capture()
           /* Set the RenderBitmap flags as appropriate depending on whether the user wants to use a picture image or B64 text value */
           if (document.getElementById("chkUseB64Image").checked)
           {
-             var flags = wgssSignatureSDK.RBFlags.RenderOutputBase64 | wgssSignatureSDK.RBFlags.RenderColor32BPP;
+             var outputFlags = wgssSignatureSDK.RBFlags.RenderOutputBase64 | wgssSignatureSDK.RBFlags.RenderColor32BPP;
           } 
           else
           {
-             var flags = wgssSignatureSDK.RBFlags.RenderOutputPicture | wgssSignatureSDK.RBFlags.RenderColor32BPP;
+             var outputFlags = wgssSignatureSDK.RBFlags.RenderOutputPicture | wgssSignatureSDK.RBFlags.RenderColor32BPP;
           }
-          sigObj.RenderBitmap("bmp", imageBox.clientWidth, imageBox.clientHeight, 0.7, 0x00000000, 0x00FFFFFF, flags, 4, 4, onRenderBitmap);
+          sigObj.RenderBitmap(BITMAP_IMAGEFORMAT, imageBox.clientWidth, imageBox.clientHeight, BITMAP_INKWIDTH, BITMAP_INKCOLOR, BITMAP_BACKGROUNDCOLOR, outputFlags, BITMAP_PADDING_X, BITMAP_PADDING_Y, onRenderBitmap);
           break;
 
         case wgssSignatureSDK.DynamicCaptureResult.DynCaptCancel:
@@ -102,7 +133,7 @@ function capture()
       }
     }
   }
-  
+
   function onRenderBitmap(sigObjV, bmpObj, status) 
   {
     if(wgssSignatureSDK.ResponseStatus.OK == status) 
@@ -148,6 +179,8 @@ function capture()
     {
       print("Signature Render Bitmap error: " + status);
     }
+  } 
+
 ```
 ---
 

@@ -1,8 +1,29 @@
 # Wacom Ink SDK for signature - SigCaptX Windows
 
-## Version 1.24.3
+## Version 1.25.4
 
 ## History
+
+* Release v.1.25.4 12-Apr-2022
+    * Fix to JS component's compatibility issue with 1.16
+
+* Release v.1.25.3 04-Mar-2022
+    * Fixed event handler closing down
+    * Improved logging detail (change of behaviour; Logging values of 1/0 enables/disables, there is no distinction of values)
+    * Fixed orderly shutdown of websocket connection; closing of finished event handler requests (non-websocket) returns 204 (no content).  
+
+* Beta Release v.1.25.2 25-Feb-2022
+    * Fix for old requests for event updates not being cleared by new requests, leaving open requests which could hang the server 
+    * until the browser closed the pending requests (typically by page refresh).
+
+* Beta Release v1.25.1  24-Feb-2022  
+    * Enabled restarting of a session if the server dies 
+    * Improved exception handling, reviewed console.log to .debug or .warn 
+    * Fixed exception in JSONReponse exception handler on server
+    * General code improvements to service and server
+
+* Beta Release v1.25.0  21-Feb-2022
+    * Re-engineered to work with websockets in order to get round performance issues with pre-flight requests in Chrome
 
 * Release v1.24.3  09-Feb-2022
     * Interim work-around for Chrome and Edge preflight request headers
