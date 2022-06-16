@@ -14,5 +14,5 @@ No preprocessing is required - the code can be deployed as is to a server.
 
 Note that as usual with sample code a licence key has not been provided.  
 A suitable key needs to be populated in the LICENCEKEY const in SigCaptX-Globals.js.  
-A standard production licence key can be found in the GETTING STARTED.md document at the top level of this Samples repository.  
+A standard production licence key can be found in the GETTING STARTED.md document at the top level of this SigCaptX repository.  
 
