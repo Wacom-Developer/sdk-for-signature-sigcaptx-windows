@@ -1,4 +1,4 @@
-# SigCaptX dynamic capture sample for Vue JS 3 using HTML
+# SigCaptX dynamic capture sample for Vue JS 3 using SFC (Single File Components)
 
 ## Project setup
 ```
