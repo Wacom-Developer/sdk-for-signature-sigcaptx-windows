@@ -1,8 +1,3 @@
----
-id: sigcaptx-vue-html
-title: SigCaptX sample code for Vue JS 3 using HTML
----
-
 # SigCaptX sample code for Vue JS 3 using HTML
 
 These samples were built using Vue JS 3.  
