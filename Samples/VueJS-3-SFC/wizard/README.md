@@ -1,4 +1,4 @@
-# sigcapx-wizard
+# SigCaptX wizard sample for Vue JS 3 using Single File Components
 
 ## Project setup
 ```
