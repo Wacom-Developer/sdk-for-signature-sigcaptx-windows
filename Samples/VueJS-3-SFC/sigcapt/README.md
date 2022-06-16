@@ -1,4 +1,4 @@
-# SigCaptX sample code for Vue JS 3 using HTML
+# SigCaptX dynamic capture sample for Vue JS 3 using HTML
 
 These samples were built using Vue JS 3.  
 They are based on the simplest form of construction i.e. by retaining HTML and JS source files.  
