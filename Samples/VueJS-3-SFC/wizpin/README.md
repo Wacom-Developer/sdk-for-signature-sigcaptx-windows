@@ -1,4 +1,4 @@
-# sigcapx-wizard
+# SigCaptX Wizard Pin Entry Sample for Vue JS 3 Single File Components
 
 ## Project setup
 ```
