@@ -2,7 +2,7 @@
 
 ## Test environment
 
-Samples are included for Windows 7 and above.
+Samples are included for Windows 10 and above.
 The SigCaptX samples need both the Signature and SigCaptX libraries to be installed.
 To test the samples, use a Wacom device such as an STU-500 or a pen/tablet device such as a DTU-1141.
 
