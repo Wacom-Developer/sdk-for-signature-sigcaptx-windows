@@ -3,9 +3,9 @@
    
   This file contains enumerators, function objects and global variables common to various functions
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2024 Wacom Co. Ltd. All rights reserved.
   
-   v4.0
+   v4.1
   
 ***************************************************************************/
 
@@ -33,7 +33,7 @@ const BITMAP_PADDING_Y = 4;
 
 const TIMEOUT = 1500;         //  Timeout value for connecting to the port used for the SigCaptX service
 const SERVICEPORT = 8000;     //  Port used for the SigCaptX service
-const LICENCEKEY = "<<license>>";  // Licence key used for sigCtl and wizCtl in SigCaptX-SessionControl.js
+const LICENCEKEY ="<<licence>>"; // Licence key used for sigCtl and wizCtl in SigCaptX-SessionControl.js
 const PIN_MAXLENGTH = 4;      //  Max lenght of PIN 
 const PIN_MINLENGTH = 1;      //  Min length of PIN
 
@@ -42,7 +42,7 @@ var padRange =
    STU300: "300",
    STU430: "430",
    STU500: "500",
-   STU5X0: "5X0"
+   STU5XX: "5XX"
 };
 
 var padType = 
@@ -50,7 +50,7 @@ var padType =
    STU300: "Wacom STU-300",
    STU430: "Wacom STU-430",
    STU500: "Wacom STU-500",
-   STU5X0: "Wacom STU-520, 530, 540 or 541"
+   STU5XX: "Wacom STU-520, 530, 540 or 541"
 };
 
 var buttonFunction =
@@ -73,8 +73,8 @@ var checkSize =
   STU430_Large:  30,
   STU500_Small:  22,
   STU500_Large:  40,
-  STU5X0_Small:  22,
-  STU5X0_Large:  40
+  STU5XX_Small:  22,
+  STU5XX_Large:  40
 };
 
 var padColors =
@@ -103,11 +103,28 @@ var buttonEvent =
   OK:     "OK"
 };
 
+var buttonText = 
+{
+  OK: "OK",
+  CLEAR: "Clear",
+  CANCEL: "Cancel"
+};
+
 var radioSelection =
 {
   MALE:  "Male",
   FEMALE: "Female"  
 };
+
+var padPosition =
+{
+  RIGHT: "right",
+  CENTRE: "centre",
+  LEFT: "left",
+  TOP: "top",
+  MIDDLE: "middle",
+  BOTTOM: "bottom"
+}
 
 // Set up the functions used for defining the various objects which are to be displayed on the pad
 function textObject()
