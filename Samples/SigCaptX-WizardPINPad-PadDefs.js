@@ -5,9 +5,9 @@
   and the objects which are to be displayed on the PIN pad screen.
   The object classes are defined in SigCaptX-WizardPINPad.html
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2024 Wacom Co. Ltd. All rights reserved.
   
-   v4.0
+   v4.1
   
 ***************************************************************************/
 
@@ -37,8 +37,8 @@ function CPad_STU(padWidth, padHeight)
        this.xButtonNext = 500;
       break;
     case 800:
-      this.Range = padRange.STU5X0;
-      this.Type = padType.STU5X0;
+      this.Range = padRange.STU5XX;
+      this.Type = padType.STU5XX;
       this.TextSize = 16;
       this.yText = 10;
       this.yLSText = 28;
