@@ -5,9 +5,9 @@
   and the objects which are to be displayed on each screen of the wizard sequence.
   The object classes are defined in SigCaptX-Wizard-Main.js
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2024 Wacom Co. Ltd. All rights reserved.
   
-   v4.0
+   v4.1
   
 ***************************************************************************/
 
@@ -52,15 +52,15 @@ function CPad_STU(padWidth, padHeight, checkBoxSize)
       this.yTitle = 10;
       break;
     case 800:
-      this.Range = padRange.STU5X0;
-      this.Type = padType.STU5X0;
+      this.Range = padRange.STU5XX;
+      this.Type = padType.STU5XX;
       if (checkBoxSize == checkSizeSelection.LARGE)
       {
-        this.CheckSize = checkSize.STU5X0_Large;
+        this.CheckSize = checkSize.STU5XX_Large;
       }
       else
       {
-        this.CheckSize = checkSize.STU5X0_Small;
+        this.CheckSize = checkSize.STU5XX_Small;
       }
       this.ButtonBold = false;
       this.ButtonSize = 22;
@@ -169,7 +169,7 @@ function screen_Display1(pad, buttonTextSource)
       this.infoText.xPos = 30;
       this.infoText.yPos = 120;
       break;
-    case padRange.STU5X0:
+    case padRange.STU5XX:
       this.infoText.xPos = 30;
       this.infoText.yPos = 120;
       this.infoText.fontForeColor = padColors.BLUE;
@@ -226,7 +226,7 @@ function screen_Display1(pad, buttonTextSource)
   this.signingText.fontSize = pad.TextSize;
   this.signingText.fontName = pad.Font;
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.signingText.fontForeColor = padColors.GREEN;
     this.signingText.fontBackColor = padColors.WHITE;
@@ -290,7 +290,7 @@ function screen_Display2(pad, buttonTextSource)
   this.infoObject.fontName = "Verdana";
   this.infoObject.type = "txt";
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.infoObject.fontForeColor = padColors.BLUE;
     this.infoObject.fontBackColor = padColors.WHITE;
@@ -316,7 +316,7 @@ function screen_Display2(pad, buttonTextSource)
       this.infoObject.fontBold = true;
       break;
     case padRange.STU500:
-    case padRange.STU5X0:
+    case padRange.STU5XX:
       this.infoObject.xPos = 30;
       this.infoObject.yPos = 120;
       this.infoObject.fontSize = 16;
@@ -330,7 +330,7 @@ function screen_Display2(pad, buttonTextSource)
   this.maleRadio.groupName = "Gender";
   this.maleRadio.buttonChecked = true;
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.maleRadio.fontForeColor = padColors.GREEN;
     this.maleRadio.fontBackColor = padColors.WHITE;
@@ -367,7 +367,7 @@ function screen_Display2(pad, buttonTextSource)
       this.femaleRadio.xPos = 350;
       this.femaleRadio.yPos = 220;
       break;
-    case padRange.STU5X0:
+    case padRange.STU5XX:
       this.maleRadio.xPos = 100;
       this.maleRadio.yPos = 220;
       this.femaleRadio.xPos = 500;
@@ -419,7 +419,7 @@ function screen_Display3(pad, buttonTextSource)
   this.stepMsg3.fontSize = pad.TextSize;
   this.stepMsg3.type = "txt"; 
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.stepMsg3.fontForeColor = padColors.BLACK;
     this.stepMsg3.fontBackColor = padColors.WHITE;
@@ -461,7 +461,7 @@ function screen_Display3(pad, buttonTextSource)
   this.pleaseSign.fontName = pad.Font;
   this.pleaseSign.type = "txt"; 
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.pleaseSign.fontForeColor = padColors.BLUE;
     this.pleaseSign.fontBackColor = padColors.WHITE;
@@ -502,7 +502,7 @@ function screen_Display3(pad, buttonTextSource)
        this.XMark.yPos = 250;
        this.XMark.fontBold = pad.TextBold;
        break;
-     case padRange.STU5X0:
+     case padRange.STU5XX:
        this.XMark.fontSize = 32;
        this.XMark.xPos = 80;
        this.XMark.yPos = 250;
@@ -541,7 +541,7 @@ function screen_Display3(pad, buttonTextSource)
       this.sigMarkerLine.yPos = 250;
       this.sigMarkerLine.textString = "..............................";
       break;
-    case padRange.STU5X0:
+    case padRange.STU5XX:
       this.sigMarkerLine.fontSize = 32;  
       this.sigMarkerLine.xPos = 110;
       this.sigMarkerLine.yPos = 250;
@@ -586,7 +586,7 @@ function screen_Display3(pad, buttonTextSource)
   {
     this.why.xPos = "right";
     this.why.yPos = 0.65*pad.Height + pad.TextLS;
-    if (pad.Range == padRange.STU5X0)
+    if (pad.Range == padRange.STU5XX)
     {
       this.why.fontForeColor = padColors.BLUE;
       this.why.fontBackColor = padColors.WHITE;
@@ -604,7 +604,7 @@ function screen_Display3(pad, buttonTextSource)
   this.okButton.buttonType = "OK";
   this.okButton.buttonText = "OK";
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.okButton.fontForeColor = padColors.WHITE;
     this.okButton.fontBackColor = padColors.PURPLE;
@@ -629,14 +629,14 @@ function screen_Display3(pad, buttonTextSource)
       // Override the positions of the buttons when using images
       this.okButton.xPos = "right";
       this.okButton.yPos = "bottom";
-      this.okButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "Accept");
+      this.okButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "accept");
       break;
       
     case textSource.REMOTE:
       // Override the positions of the buttons when using images
       this.okButton.xPos = "right";
       this.okButton.yPos = "bottom";
-      this.okButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "Accept");
+      this.okButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "accept");
       break;
   } 
 
@@ -662,14 +662,14 @@ function screen_Display3(pad, buttonTextSource)
       // Override the positions of the buttons when using images
       this.clearButton.xPos = "centre";
       this.clearButton.yPos = "bottom";
-      this.clearButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "Clear");
+      this.clearButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "clear");
       break;
       
     case textSource.REMOTE:
       // Override the positions of the buttons when using images
       this.clearButton.xPos = "centre";
       this.clearButton.yPos = "bottom";
-      this.clearButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "Clear");
+      this.clearButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "clear");
       break;
   } 
 
@@ -715,7 +715,7 @@ function setupNextButton(pad, buttonTextSource)
   this.nextButton.buttonType = "Next";
   this.nextButton.buttonText = "Next";
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     this.nextButton.fontForeColor = padColors.WHITE;
     this.nextButton.fontBackColor = padColors.PURPLE;
@@ -740,14 +740,14 @@ function setupNextButton(pad, buttonTextSource)
       // Override the positions of the buttons when using images
       this.nextButton.xPos = "right";
       this.nextButton.yPos = "bottom";
-      this.nextButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "RightArrow");
+      this.nextButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "rightarrow");
       break;
       
     case textSource.REMOTE:
       // Override the positions of the buttons when using images
       this.nextButton.xPos = "right";
       this.nextButton.yPos = "bottom";
-      this.nextButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "RightArrow");
+      this.nextButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "rightarrow");
       break;
   } 
   return this.nextButton;
@@ -771,7 +771,7 @@ function setupCancelButton(pad, buttonTextSource, buttonFunc)
   cancelButton.buttonType = "Cancel";
   cancelButton.buttonText = "Cancel";
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     cancelButton.fontForeColor = padColors.WHITE;
     cancelButton.fontBackColor = padColors.PURPLE;
@@ -839,7 +839,7 @@ function setupPreviousButton(pad, buttonTextSource)
   previousButton.buttonType = "Cancel";
   previousButton.buttonText = "Previous";
   
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     previousButton.fontForeColor = padColors.WHITE;
     previousButton.fontBackColor = padColors.PURPLE;
@@ -862,14 +862,14 @@ function setupPreviousButton(pad, buttonTextSource)
       // Override the positions of the buttons when using images
       previousButton.xPos = "left";
       previousButton.yPos = "bottom";
-      previousButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "LeftArrow");
+      previousButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "leftarrow");
       break;
       
     case textSource.REMOTE:
       // Override the positions of the buttons when using images
       previousButton.xPos = "left";
       previousButton.yPos = "bottom";
-      previousButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "LeftArrow");
+      previousButton.imageFile = setButtonImageFile(buttonTextSource, pad.Range, "leftarrow");
       break;
   } 
   return previousButton;
@@ -895,7 +895,7 @@ function setupContinueText(pad, buttonTextSource)
   }
   
   // For the colour pads set up the font colours
-  if (pad.Range == padRange.STU5X0)
+  if (pad.Range == padRange.STU5XX)
   {
     nextToContinue.fontForeColor = padColors.BLUE;
     nextToContinue.fontBackColor = padColors.WHITE;
@@ -943,7 +943,7 @@ function setButtonImageFile(buttonTextSource, currentPadRange, imagePrefix)
   }
   else
   {
-    filePath = "http://gsdt.wacom.eu/SigCaptX/images/";
+    filePath = "https://cdn.wacom.com/signature/sigcaptx/images/";
   }
 
   //print("filePath: " + filePath);
@@ -959,7 +959,7 @@ function setButtonImageFile(buttonTextSource, currentPadRange, imagePrefix)
     case padRange.STU500:
       imageFile = filePath + imagePrefix + "500.png";
       break;
-    case padRange.STU5X0:
+    case padRange.STU5XX:
       imageFile = filePath + imagePrefix + "530.png";
       break;
   }
