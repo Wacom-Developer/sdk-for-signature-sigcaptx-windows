@@ -2,7 +2,7 @@
 
 ## Test environment
 
-Samples are included for Windows 7 and above.
+Samples are included for Windows 10 and above.
 The SigCaptX samples need both the Signature and SigCaptX libraries to be installed.
 To test the samples, use a Wacom device such as an STU-500 or a pen/tablet device such as a DTU-1141.
 
@@ -96,35 +96,6 @@ The samples can then be opened and run in any of the commonly used browsers: Int
 | SigCaptX-Wizard.html          | Wizard sample showing use of check boxes, radio buttons, images for buttons, SigText generation, font sizes and colour (for STUs which support colour) |
 | SigCaptX-WizardPINPad.html    | Demonstrates full version of PIN pad input |
 | demo.htm                      | Basic sample illustrating use of dynamic capture, wizard capture and single digit PIN input |
-
-
-### Demo.htm
-
-The sample webpage "demo.htm" is included in the samples.
-In order to test this first copy it to the demo folder in C:\Program Files (x86)\Wacom SigCaptX.
-To simplify the use of this sample the web server is a localhost python process and the server SSL certificate used is the same one as the one used by SigCaptX.
-In a real world scenario the webpage server would be remote and it would need to use its own certificate.
-
-To run the sample, first you need to install Python 2.x on your machine and add Python to the windows PATH environment variable.
-Also, if you have modified the "start_port" value in the registry, you will need to modify the webpage demo/demo.htm.
-The example also uses the wgssSigCaptX.js and base64.js files.
-The web server needs to know the port number beforehand so that it can talk to the local SigCaptX background service of the user's machine.
-Specifically, you need to change this line of demo/demo.htm:
-
-```
-var wgssSignatureSDK = new WacomGSS_SignatureSDK(onDetectRunning, 8000)
-```
-
-Change 8000 to the port that you have specified as "start_port" in the registry.
-
-Then execute demo/server.py:
-
-  `python server.py`
-
-Now you can load the webpage from a browser by visiting https://localhost:7999/demo.htm
-
-----
-
 
 
 ### ASP.NET sample

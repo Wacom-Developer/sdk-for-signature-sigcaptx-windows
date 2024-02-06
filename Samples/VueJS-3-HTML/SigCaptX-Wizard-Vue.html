@@ -1,0 +1,409 @@
+﻿<!--
+/* ************************************************************************** */
+  SigCaptX-Wizard-Vue.html
+   
+  Cross browser Wizard Control sample based on the Vue framework showing how to use the following features:
+  
+    - Standard signature capture (using sigCtl)
+    - Checkbox (with an option for a larger size)
+    - Outputting Sigtext value to the browser text box
+    - UTF8 text on buttons
+    - Buttons created from local images (only works when run locally on a PC, not from a server)
+    - Buttons created from images downloaded from a Web site    
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardCheckbox-PadDefs.js
+  
+  Copyright (c) 2022 Wacom Co. Ltd. All rights reserved.
+  
+   v1.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<html>
+<head>
+    <title>SigCaptX-WizardControl</title>
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="wgssSigCaptX.js"></script>
+    <script src="base64.js"></script>
+    <script src="SigCaptX-Wizard-Main.js"></script>
+    <script src="SigCaptX-Wizard-PadDefs.js"></script>
+    <script src="SigCaptX-Utils.js"></script>
+    <script src="SigCaptX-SessionControl.js"></script>
+    <script src="SigCaptX-Globals.js"></script>
+    <script type="importmap">   // Needed for Vue.js
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+    
+    <script type="module">
+
+      vue_app = Vue.createApp({
+        data() {
+          return {
+            pageHeading: 'Wizard Signature Capture',
+            stuPadHeight: 0,
+            stuPadWidth: 0,
+            userMsgs: ' ',
+            imageBox: null,
+            userMsgBox: null,
+            displayWizard: true,
+            showSigText: false,
+            largeCheckBox: false,
+            btnTypeSelected: "standard"
+          }
+        },
+        methods: {
+        
+          userMsg: function(txt) 
+          {
+            this.userMsgs += txt + "\n";
+            this.userMsgBox.scrollTop = this.userMsgBox.scrollHeight; // scroll to end
+          },
+          clearTextBox: function()
+          {
+            this.userMsgs = "";
+          },
+          body_onload : function()
+          {
+            this.userMsgBox = document.getElementById("txtDisplay");
+            this.imageBox = document.getElementById("imageBox");
+            this.clearTextBox();
+            this.userMsg("Starting up SigCaptX processes");
+            actionWhenRestarted();
+          },
+          
+          start_stop : function(numScreens)
+          {
+            this.userMsg("Starting wizard with " + numScreens + " screens");
+            if( scriptIsRunning ) 
+            {
+              this.stop();
+            }
+            else
+            {
+              this.wizStart(numScreens);
+            }
+          },
+          
+          stop : function()
+          {
+            if( !scriptIsRunning ) 
+            {
+              this.userMsg("Script not running");
+            }
+            else
+            {
+              this.stopScript();
+            }
+          },
+          
+          script_Completed : function(stopScriptNow)
+          {
+            this.userMsg("Script completed");
+            if (stopScriptNow)
+            {
+              this.stopScript();
+            }
+            else
+            {
+              this.userMsg("Showing signature");
+              this.showSignature();
+            }
+          },
+          
+          script_Cancelled : function()
+          {
+            this.userMsg("Script cancelled");
+            this.stop();
+          },
+          
+          // Function called to stop the wizard script
+          stopScript:function()
+          {
+            scriptIsRunning = false;
+            document.getElementById("btnStartStopWizard").value = "Start Wizard";
+            if(null != wizCtl)
+            {
+              wizCtl.Reset(this.onReset);
+            }
+          },
+          onReset:function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl Reset", status))
+            {
+              wizCtl.Close(this.onClose);
+            }
+          },
+
+          onClose:function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PadDisconnect", status))
+            {
+              wizCtl = null;
+              this.userMsg("Pad disconnected");
+            }
+          },
+          
+          // Function called to start off the wizard session
+          wizStart: function(numScreens)
+          {
+            numScreenDisplays = numScreens;
+            
+            if(!wgssSignatureSDK.running)
+            {
+              this.userMsg("Session error. Restarting the session.");
+              actionWhenRestarted(this.wizardStart);
+              return;
+            }
+            
+            if(null != wizCtl)
+            {
+              wizCtl.Close(this.onWizClose);
+              return;
+            }
+            this.start_wizard();
+          },
+          
+          onWizClose: function(wizCtlV, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+            {
+              this.userMsg("Session error. Restarting the session.");
+              actionWhenRestarted(this.wizardStart);
+            }
+            else
+            {
+              wizCtl = null;
+              this.start_wizard();
+            }
+          },
+            
+          start_wizard: function()
+          {
+            scriptIsRunning = true;
+            wizCtl = new wgssSignatureSDK.WizCtl(this.onWizCtlConstructor);
+          },
+            
+          onWizCtlConstructor: function(wizCtlV, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.OK == status)
+            {
+              this.userMsg("Enabling licence");
+              wizCtl.PutLicence(LICENCEKEY, this.onWizCtlPutLicence);
+            }
+            else
+            {
+              this.userMsg("WizCtl Constructor error: " + status);
+              wizCtl = null;
+              if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+              {
+               this.userMsg("Session error. Restarting the session.");
+                actionWhenRestarted(this.wizardStart);
+              }
+            }
+          },
+            
+          onWizCtlPutLicence: function(sigCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PutLicence", status) == true)
+            {
+             //userMsg("License set OK - now checking chkDisplayWizard");
+              wizCtl.PutVisibleWindow(this.displayWizard, this.onPutVisibleWindow);
+            }
+          },
+            
+          onPutVisibleWindow: function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PutVisibleWindow", status) == true)
+            {
+              wizCtl.PadConnect(this.onPadConnect);
+            }
+          },
+          
+          onPadConnect: function(wizCtlV, connected, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.OK == status && connected)
+            {
+              wizCtl.GetPadWidth(this.onGetPadWidth);
+            }
+            else
+            {
+              this.userMsg("Unable to make connection to the Pad. Check it is plugged in and try again.");
+              wizCtl.Close(this.onErrorClose);
+            }
+          },
+          
+          onErrorClose: function(wizCtlG, status) 
+          {
+            wizCtl = null;
+          },
+            
+          onGetPadWidth: function(wizCtlV, padWidth, status)
+          {
+            if(callbackStatusOK("WizCtl GetPadWidth", status) == true)
+            {
+              this.stuPadWidth = padWidth;
+              wizCtl.GetPadHeight(this.onGetPadHeight);
+            }
+          },
+            
+          onGetPadHeight: function(wizCtlV, padHeight, status)
+          {
+            var buttonTextSource;
+            var chkBoxSize;
+
+            if(wgssSignatureSDK.ResponseStatus.OK == status)
+            { 
+              this.stuPadHeight = padHeight;
+
+              /* If the user wants a large check box pass this as a parameter to CPad_STU in SigCaptX-Wizard-PadDefs.js */
+              /* Note that this code is also used by the PIN pad sample which doesn't have the user options so make sure
+                 the tags exist first */
+              
+              if (this.largeCheckBox)
+                chkBoxSize = checkSizeSelection.LARGE;
+              else
+                chkBoxSize = checkSizeSelection.STANDARD;
+       
+              pad = new CPad_STU(this.stuPadWidth, this.stuPadHeight, chkBoxSize);
+              
+              /* Decide what parameter to pass to Screen1() in SigCaptX-WizardCheckbox-PadDefs.js 
+                 This depends on what the user has selected on the HTML form. Make sure the tags exist first */
+          
+              this.userMsg("Button type selected: " + this.btnTypeSelected);
+              switch (this.btnTypeSelected)
+              {
+                case "standard":
+                  buttonTextSource = textSource.STANDARD;
+                  break;
+                case "utf8":
+                  buttonTextSource = textSource.UTF8;
+                  break;
+                case "local":
+                  buttonTextSource = textSource.LOCAL;
+                  break;
+                case "remote":
+                  buttonTextSource = textSource.REMOTE;
+                  break;
+              }
+
+              display_1 = new screen_Display1(pad, buttonTextSource);
+              if (numScreenDisplays >= 2)
+              {
+                display_2 = new screen_Display2(pad, buttonTextSource);
+              }
+              if (numScreenDisplays >= 3)
+              {
+                display_3 = new screen_Display3(pad, buttonTextSource);
+              }
+              step1();
+            }
+            else
+            {
+              this.userMsg("WizCtl PutVisibleWindow error: " + status);
+            }
+          },
+
+          // Called when the wizard script is completed and displays the image of the captured signature in the
+          // signature image on the HTML document. Optionally also displays the SigText string
+          showSignature: function()
+          {
+            this.userMsg("Showing signature");
+            sigCtl.GetSignature(this.onGetSignature);
+          },
+          onGetSignature:function(sigCtlV, sigObjV, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.OK == status)
+            {
+              var outputFlags = wgssSignatureSDK.RBFlags.RenderOutputPicture | wgssSignatureSDK.RBFlags.RenderColor24BPP;
+              var sigObj = sigObjV;
+              sigObj.RenderBitmap(BITMAP_IMAGEFORMAT, this.imageBox.clientWidth, this.imageBox.clientHeight, BITMAP_INKWIDTH, BITMAP_INKCOLOR, BITMAP_BACKGROUNDCOLOR, outputFlags, BITMAP_PADDING_X, BITMAP_PADDING_Y, this.onRenderBitmap);
+            }
+            else
+            {
+              document.getElementById("statusText").innerHTML += "<br>Error retrieving signature";
+            }
+          },
+          
+          onRenderBitmap:function(sigObjV, bmpObj, status) 
+          {
+            if(callbackStatusOK("Signature Render Bitmap", status))
+            {
+              if(null == this.imageBox.firstChild)
+              {
+                this.imageBox.appendChild(bmpObj.image);
+              }
+              else
+              {
+                this.imageBox.replaceChild(bmpObj.image, this.imageBox.firstChild);
+              }
+              if (this.showSigText)
+              {
+                sigObjV.GetSigText(this.onGetSigText);
+              }
+              else
+              {
+                this.stop();
+              }
+            } 
+          },
+            
+          // Displays the SigText string in the text box on the HTML document
+          onGetSigText:function(sigObjV, text, status) 
+          {
+            if(callbackStatusOK("Signature Render Bitmap", status))
+            {
+             this.userMsg("Sig text successfully obtained: " + text);
+          
+             // At this point you can send the contents of "text" to the server 
+             // and then validate it at the server end
+         
+             this.userMsg("Stopping script");
+             this.stop();
+            }
+          }
+        },
+        mounted() {
+          this.body_onload();  //  Make sure the SigCaptX service and server processes are running
+        }
+      }).mount('#app')
+      
+  </script>
+  
+</head>
+  <body>
+    <div id="app" style="width:100%">
+      <h2>{{ pageHeading }}</h2>
+      <table style="padding: 10px 10px;" cellspacing="30">
+        <tr>  
+          <td rowspan="2">
+            <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;"></div>
+          </td>
+          <td>
+            <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" @click="start_stop(3)" title="Starts/Stops a Wizard Script"/>
+          </td>
+        </tr>
+      </table>
+        
+    <h3>Options</h3>
+      <input type="checkbox" id="chkDisplayWizard" checked="checked" v-model="displayWizard"/>Display Wizard Control Window
+      <input type="checkbox" id="chkLargeCheckbox" v-model="largeCheckBox"/>Large size checkbox
+      <input type="checkbox" id="chkSigText" v-model="showSigText"/>Output sigtext to browser text window <br/><br/>
+    Button options: 
+    <p style="margin-left: 40px">
+      <input type="radio" name="buttontype" value="standard" id="standard" v-model="btnTypeSelected">Use standard buttons<br/>
+      <input type="radio" name="buttontype" value="utf8" id="utf8" v-model="btnTypeSelected"/>Display UTF-8 text (e.g. for languages using logograms)<br/>
+      <input type="radio" name="buttontype" value="local" id="local" v-model="btnTypeSelected">Use local images (only works if the sample is installed on local PC)<br/>
+      <input type="radio" name="buttontype" value="remote" id="remote" v-model="btnTypeSelected"/>Use remote (URL) images
+      <br/>
+    </p>
+      <textarea cols="125" rows="30" id="txtDisplay" v-model="userMsgs"></textarea>
+    </div>
+  </body>
+</html>

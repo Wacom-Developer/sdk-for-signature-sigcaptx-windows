@@ -1,59 +1,350 @@
-﻿//==============================================================================
-// wgssSigCaptX.js
-// Copyright (c) 2015 Wacom Europe GmbH
-//
-// 01/04/2015  FRE Created
 //==============================================================================
-// Loosely based on https://github.com/robertodecurnex/J50Npi
-var JSONreq={map:{},counter:0,getJSON:function(e,t,n){var a=e+(e.indexOf("?")+1?"&":"?"),c=document.getElementsByTagName("head")[0],s=document.createElement("script"),m=[],r="",i="json-"+this.counter;this.counter++,t.script_name=i,t._rand=Math.random(),this.map[i]=n,t.callback="JSONreq.success";for(r in t)m.push(r+"="+encodeURIComponent(t[r]));a+=m.join("&"),s.type="text/javascript",s.src=a,s.id=i,c.appendChild(s)},success:function(e){var t=e.script_name;delete e.script_name,this.map[t](e);var n=document.getElementsByTagName("head")[0],a=document.getElementById(t);n.removeChild(a),delete this.map.script_name}};
+// wgssSigCaptX.js
+// Copyright (c) 2022 Wacom Co.,Ltd.
+//==============================================================================
 
-/*var JSONreq = {  
-    map: {},
-    counter: 0,
-    getJSON: function(url, data, callback) {
-      var src = url + (url.indexOf("?")+1 ? "&" : "?");
-      var head = document.getElementsByTagName("head")[0];
-      var newScript = document.createElement("script");
-      var params = [];
-      var param_name = "";
-      
-      var script_name = "json-" + this.counter;
-      this.counter++;
-      data["script_name"] = script_name;
-      data["_rand"] = Math.random();
-      this.map[script_name] = callback;
-      
-      data["callback"] = "JSONreq.success";
-      for(param_name in data){  
-          params.push(param_name + "=" + encodeURIComponent(data[param_name]));  
-      }
-      src += params.join("&");
+Promise = window.Promise || function (x) { this.then = function(x) { return this; }; this.catch = function (x) { return this; }; return this; }
 
-      newScript.type = "text/javascript";  
-      newScript.src = src;
-      newScript.id = script_name;
-      
-      head.appendChild(newScript); 
-    },
-    success: function(server_data) {
-      var script_name = server_data.script_name;
-      delete server_data.script_name;
-      this.map[script_name](server_data);
-      var head = document.getElementsByTagName("head")[0];
-      var the_script = document.getElementById(script_name);
-      head.removeChild(the_script);
-      delete this.map.script_name;
-    }
-};*/
+var JSONreq =
+{
+	maxChunkSize: 65535, // size of chunks to split the message into
+	callbackTable: [], // here we are going to save messageID and associate callback
+	messageCounter: 0,
+	secure: true,
+
+
+	getJSON_GET_URL: function(address)
+	{
+		return (this.secure ? "https://" : "http://") + address;
+	},
+
+
+	getJSON_GET_common: function(address, data, callback)
+	{
+		var url = this.getJSON_GET_URL(address);
+
+		var messageId = ++(this.messageCounter);
+
+		var src = url + (url.indexOf("?")+1 ? "&" : "?");
+		var params = [];
+		var param_name = "";
+		
+		var script_name = "json-" + messageId;
+		data["script_name"] = script_name;
+		data["_rand"] = Math.random();
+		this.callbackTable[script_name] = callback;
+		
+		for(param_name in data)
+		{
+			params.push(param_name + "=" + encodeURIComponent(data[param_name]));
+		}
+		src += params.join("&");
+		return src;
+	},
+
+
+	getJSON_GET_script: function(address, data, callback) 
+	{
+		data["callback"] = "JSONreq.successScript";
+		var src = this.getJSON_GET_common(address, data, callback);
+
+		var head = document.getElementsByTagName("head")[0];
+		var newScript = document.createElement("script");
+
+		newScript.type = "text/javascript";
+		newScript.src = src;
+		newScript.id = data["script_name"];
+		
+		head.appendChild(newScript); 
+	},
+
+
+	getJSON_GET_fetch: function(address, data, callback) 
+	{
+		data["callback"] = "JSONreq.successFetch";
+		var src = this.getJSON_GET_common(address, data, callback);
+		
+		fetch(src)
+		.then(function(response) { return response.text(); })
+		.then(function(script) { eval(script); });
+	},
+
+
+	successCommon: function(server_data)
+	{
+		var messageId = server_data.script_name;
+		delete server_data.script_name;
+		try
+		{
+			this.callbackTable[messageId](server_data);
+		}
+		finally
+		{
+			delete this.callbackTable[messageId];
+		}
+		return messageId;
+	},
+
+
+	successFetch: function(server_data)
+	{
+		this.successCommon(server_data);
+	},
+
+
+	successScript: function(server_data) 
+	{
+		var script_name = this.successCommon(server_data);
+
+		var head = document.getElementsByTagName("head")[0];
+		var the_script = document.getElementById(script_name);
+		head.removeChild(the_script);
+	},
+
+
+	onMessage: function(message)
+	{
+		if (typeof message.data !== 'undefined' && message.data != "") 
+		{
+			//console.debug("onMessage:" + message.data);
+			try
+			{
+				var arg = JSON.parse(message.data); // assumes single frame!
+				if (this.callbackTable[arg._messageId])
+				{
+					try
+					{
+						this.callbackTable[arg._messageId](arg);
+					}
+					catch (e)
+					{
+						console.debug("callback '"+this.callbackTable[arg._messageId]+"' threw an exception: "+e);
+					}
+					finally
+					{
+						delete this.callbackTable[arg._messageId];
+					}
+				}
+			}
+			catch (e)
+			{
+				console.warn("onMessage exception ["+message.target.url+"]: ",e);
+			}
+		}
+		else
+		{
+			console.debug("onMessage: ignoring null message ["+message.target.url+"] : created by: ",message.target["ensureSocketOpen_data"]);
+		}
+	},
+
+	onCloseError: function(msg,src)
+	{
+		try
+		{
+			var id = msg.target["ensureSocketOpen_Id"];
+
+			if (JSONreq.webSocket1 && JSONreq.webSocket1["ensureSocketOpen_Id"] == id)
+			{
+				//console.debug(src+": deleting JSONreq.webSocket1 from: ", msg.target["ensureSocketOpen_data"]);
+				delete JSONreq.webSocket1;
+				JSONreq.webSocket1 = null;
+			}
+			else if (JSONreq.webSocket2 && JSONreq.webSocket2["ensureSocketOpen_Id"] == id) 
+			{
+				//console.debug(src+": deleting JSONreq.webSocket2 from: ", msg.target["ensureSocketOpen_data"]);
+				delete JSONreq.webSocket2;
+				JSONreq.webSocket2 = null;
+			}
+			else
+			{
+				//console.debug(src+" (orphan): "+msg.target.url+" from: ", msg.target["ensureSocketOpen_data"]);
+			}
+		}
+		catch (e)
+		{
+			console.debug(src+" exception",e);
+		}
+
+	},
+
+	onClose: function(msg)
+	{
+		this.onCloseError(msg,"onClose");
+	},
+
+
+	onError: function(msg)
+	{
+		this.onCloseError(msg,"onError");
+	},
+
+
+	_send: function(webSocket, str)
+	{
+		var length = str.length;
+		var pos = 0;
+
+		while (pos < length)
+		{
+			var header = (pos + this.MaxChunkSize < length)? "0" : "1";
+			var chunk = str.substr(pos, this.MaxChunkSize);
+
+			webSocket.send(header + chunk);
+			pos += this.MaxChunkSize;
+		}
+	},
+
+
+	sendMessage: function(webSocket, data, callback)
+	{
+		var messageId = ++(this.messageCounter);
+		
+		data["_messageId"] = messageId;
+		var params = [];
+		var param_name = "";
+		for(param_name in data)
+		{
+			params.push(param_name + "=" + encodeURIComponent(data[param_name]));
+		}
+		//console.debug("sendMessage("+webSocket.url+"): "+params.join("&"));
+
+		this.callbackTable[messageId] = callback;
+		this._send(webSocket, params.join("&"));
+	},
+
+
+	// returns a promise that resolves when the connection is open
+	ensureSocketOpen: /*async*/ function(url,data)
+	{
+		var JSONreq = this;
+
+		var usePrimarySocket = true;
+		var webSocket = JSONreq.webSocket1;
+		var value = data['WizCtl'];
+		var setEvent = (value == 'SetEventHandler');
+		if (value && (setEvent || value=='UpdateEventHandler'))
+		{
+			usePrimarySocket = false;
+
+			if (JSONreq.webSocket2 && setEvent)
+			{
+				//console.debug("new SetEventHandler - replace webSocket2");
+				/*await*/ JSONreq.webSocket2.close();
+				JSONreq.webSocket2 = null;
+			}
+			webSocket = JSONreq.webSocket2;
+		}
+		else
+		{
+			if (webSocket && webSocket.url != url)
+			{
+				//console.debug("URL changed: replacing webSocket1");
+				/*await*/ webSocket.close();
+				JSONreq.webSocket1 = webSocket = null;
+			}
+		}
+
+		return new Promise(function(resolve,reject) {
+			if (webSocket)
+			{
+				if (webSocket.readyState == 1)
+					resolve(webSocket);
+				else
+					reject(webSocket.readyState);
+			}
+			else
+			{
+				new Promise(function (innerResolve, innerReject) {
+					//console.debug("new WebSocket: "+url);
+					webSocket = new WebSocket(url);
+					
+					var timeoutId = setTimeout(function() { console.debug("fast timeout triggered"); webSocket.onclose = webSocket.onerror = null; webSocket.close(); innerReject("fast timeout"); }, 1000);
+
+					webSocket.onopen = function(msg) { clearTimeout(timeoutId); if (msg.target.readyState == 1) { msg.target["ensureSocketOpen_data"]=data; innerResolve(msg.target); } else { innerReject(msg.target.readyState); }; }
+					webSocket.onclose = function(msg) { clearTimeout(timeoutId); innerReject(msg.target.readyState); }
+					webSocket.onerror = function(msg) { clearTimeout(timeoutId); innerReject(msg.target.readyState); }
+				})
+				.then(function (sock) {
+					sock.onmessage = JSONreq.onMessage.bind(JSONreq);
+					sock.onclose = JSONreq.onClose.bind(JSONreq);
+					sock.onerror = JSONreq.onError.bind(JSONreq);
+
+					sock["ensureSocketOpen_Id"] = JSONreq.messageCounter;
+
+					if (usePrimarySocket) 
+						JSONreq.webSocket1 = sock; 
+					else
+						JSONreq.webSocket2 = sock;
+
+					resolve(sock);
+				})
+				.catch(function(e) {
+					reject(e);
+				});
+			}
+		});
+	},
+
+
+	getJSON_WebSocket: function(address, data, callback, allowFallback)
+	{
+		var url= (this.secure ? "wss://" : "ws://") + address;
+
+		var JSONreq = this;
+		this.ensureSocketOpen(url,data)
+		.then(function(webSocket) {
+			JSONreq.sendMessage(webSocket, data, callback); 
+		})
+		.catch(function(e) {
+			if (e == "fast timeout" && typeof allowFallback != 'undefined')
+			{
+				JSONreq.getJSON = JSONreq.getJSON_GET_script;
+				JSONreq.getJSON(address, data, callback);
+			}
+			else
+			{
+				console.warn("getJSON_getWebSocket exception:",e);
+				var server_data = [];
+				server_data['status'] = 3;
+				server_data['exception'] = e;
+				try
+				{
+					callback(server_data);
+				}
+				catch (e)
+				{
+					console.debug("callback '"+callback+"' threw an exception: "+e);
+				}
+			}
+		});
+	},
+
+	getJSON: function(address, data, callback)
+	{
+		var isIE = window.navigator.userAgent.indexOf('MSIE ') != -1 || window.navigator.userAgent.indexOf('Trident/') != -1;
+		if (isIE) console.debug("Internet Explorer detected: using "+(this.secure?"https":"http")+" GET");
+
+		this.getJSON = !isIE ? this.getJSON_WebSocket : this.getJSON_GET_script;
+		return this.getJSON(address, data, callback, true);
+	}
+};
+
 
 function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
 {
+  this.version = "1.25.4";
   this.running = false;
   this.session = null;
   this.service_detected = false;
+  this.service_fileVersion = null;
+  this.service_port = service_port;
   var sigsdkptr = this;
-  var server_url = "https://localhost:";
-  
+
+  var service_hostname = "localhost";
+  var server_address;
+  //JSONreq.secure = false;
+
+
   this.RBFlags =
   {
     //RenderOutputBinary : 2048,    // Not supported in SigCaptX
@@ -341,8 +632,30 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
                    "session": sigsdkptr.session, 
                    "KeepAlive": 1
                  };
-    JSONreq.getJSON(server_url + "wacom.js", data, function (){});
-    setTimeout(sigsdkptr.keepAlive, 2000);
+
+
+    function callback(server_data) 
+    {
+      try
+      {
+        if (typeof server_data.status === 'undefined' || server_data.status == 0)
+        {
+          setTimeout(sigsdkptr.keepAlive, 5000);//20000
+        }
+        else
+        {
+          console.debug("keepalive: dead session, restarting");
+          sigsdkptr.session = 0;
+          sigsdkptr.getPort();
+        }
+      }
+      catch (e)
+      {
+        console.warn("keepalive callback exception:",e); 
+      }
+    }
+
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
   }
   
   function onGetSession(server_data) 
@@ -352,7 +665,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       sigsdkptr.session = server_data.session
       sigsdkptr.running = true;
       _onDetectRunning();
-      setTimeout(sigsdkptr.keepAlive, 2000);
+      setTimeout(sigsdkptr.keepAlive, 20000);
     } 
     else 
     {
@@ -365,11 +678,16 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
     if(0 == server_data.status) 
     {
       sigsdkptr.service_detected = true;
-      server_url += server_data.port + "/";
+			if (server_data.fileVersion)
+			{
+				console.info("connected to SigCaptX Service v"+server_data.fileVersion);
+				sigsdkptr.service_fileVersion = server_data.fileVersion;
+			}
+      server_address = service_hostname + ':' + server_data.port;
       var data = { 
                    "CreateSession": 1
                  };
-      JSONreq.getJSON(server_url + "wacom.js", data, onGetSession)
+     JSONreq.getJSON(server_address + "/wacom.js", data, onGetSession)
     } 
     else 
     {
@@ -378,36 +696,56 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
   }
 
 
-  function destroySession()
+  function internalDestroySession()
   {
     if (sigsdkptr.session != 0)
     {
-      var u = server_url + "wacom.js" + "?DestroySession=1&session="+sigsdkptr.session;
+      try {
+        var u = JSONreq.getJSON_GET_URL(server_address + "/wacom.js") + "?DestroySession=1&session=" + sigsdkptr.session;
 
-      sigsdkptr.session = 0;
+        sigsdkptr.session = 0;
 
-      if (self.Navigator.sendBeacon != undefined)
-      {
-        self.Navigator.sendBeacon(u);
+        if (navigator.sendBeacon != undefined) {
+	  	console.debug("sending DestroySession beacon: " + u);
+          navigator.sendBeacon(u);
+        }
+        else {
+			console.debug("no beacon support: cannot send destroySession");
+         // var r = new XMLHttpRequest();
+         // r.open("GET", u, false); // synchronous
+         // r.send(null);
+        }
       }
-      else
-      {
-        var r = new XMLHttpRequest();
-        r.open("GET", u, false); // synchronous
-        r.send(null);
-      }
-      
+      catch (e) {
+        console.warn("destroySession exception: " + e);
+      }      
     }
-  }
+  };
 
-  window.addEventListener('unload', function(event) { destroySession(); });
+  this.callInternalDestroySession = function() {
+	internalDestroySession();
+  };
 
-  function checkService() 
+  this.destroySession = function(_onDestroySession) { 
+    var data = {
+	  "DestroySession":1,
+      "session": sigsdkptr.session,
+    };
+    function callback(server_data) {
+      _onDestroySession();
+    }
+	sigsdkptr.session = 0;
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
+  };
+  
+  window.addEventListener('unload', function(event) { internalDestroySession(); });
+
+  this.getPort = function(_onGetPort) 
   {
     var data = { "GetPort": 1 };
-    JSONreq.getJSON(server_url + service_port + "/wacom.js", data, onGetPort);
+    JSONreq.getJSON(service_hostname + ':' + service_port + "/wacom.js", data, _onGetPort);
   }
-  checkService();
+  this.getPort(onGetPort);
 
   this.getVersion = function(_onGetVersion) {
     var data = {
@@ -417,7 +755,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
     function callback(server_data) {
       _onGetVersion(/*thisptr,*/ server_data.version, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
   }
 
   function checkVar(input)
@@ -440,7 +778,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onHash(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     
     // hData is a sigsdkptr.Variant
     this.Add = function(hData, _onAdd)
@@ -455,7 +793,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onAdd(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.Clear = function(_onClear)
@@ -469,7 +807,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onClear(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetType = function(_onGetType)
@@ -485,7 +823,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.type type is sigsdkptr.HashType
         _onGetType(thisptr, parseInt(server_data.hashType), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // type is sigsdkptr.HashType
     this.PutType = function(type, _onPutType)
@@ -500,7 +838,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutType(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
   }
   
@@ -519,7 +857,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onKey(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
         
     this.GetType = function(_onGetType)
     {
@@ -533,7 +871,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.type type is sigsdkptr.KeyType
         _onGetType(thisptr, parseInt(server_data.type), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // type is sigsdkptr.KeyType
     // value is sigsdkptr.Variant
@@ -550,7 +888,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSet(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
   }
   
@@ -585,7 +923,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.status type is sigsdkptr.IntegrityStatus
         _onCheckIntegrity(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // hash type is sigsdkptr.Hash
     this.CheckSignedData = function(hash, _onCheckSignedData)
@@ -601,7 +939,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.status type is sigsdkptr.SignedData
         _onCheckSignedData(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.Clear = function(_onClear)
@@ -615,7 +953,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onClear(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     // captData type is sigsdkptr.CaptData
     this.GetAdditionalData = function(captData, _onGetAdditionalData)
@@ -631,7 +969,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.additionalData is a string
         _onGetAdditionalData(thisptr, server_data.additionalData, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.GetCrossedOut = function(_onGetCrossedOut)
@@ -646,7 +984,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.crossedOut is a bool
         _onGetCrossedOut(thisptr, Boolean(1 == parseInt(server_data.crossedOut)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     // key is a string
     this.GetExtraData = function(key, _onGetExtraData)
@@ -662,7 +1000,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.extraData is a string
         _onGetExtraData(thisptr, server_data.extraData, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.GetHeight = function(_onGetHeight)
@@ -677,7 +1015,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.height is a number
         _onGetHeight(thisptr, parseInt(server_data.height), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.GetInk = function(_onGetInk)
@@ -692,7 +1030,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.ink is a string
         _onGetInk(thisptr, server_data.ink, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.GetIsCaptured = function(_onGetIsCaptured)
@@ -707,7 +1045,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.isCaptured is a bool
         _onGetIsCaptured(thisptr, Boolean(1 == parseInt(server_data.isCaptured)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // key is a string
     this.GetProperty = function(key, _onGetProperty)
@@ -724,7 +1062,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         property.Parse(server_data, "property");
         _onGetProperty(thisptr, property, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetSigData = function(_onGetSigData)
@@ -741,7 +1079,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         sigData.Parse(server_data, "sigData");
         _onGetSigData(thisptr, sigData, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     
     this.GetSigText = function(_onGetSigText)
@@ -756,7 +1094,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.sigText is a string
         _onGetSigText(thisptr, server_data.sigText, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     //timeZone is a sigsdkptr.TimeZone
     this.GetWhen = function(timeZone, _onGetWhen) 
@@ -781,7 +1119,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         date.dayOfWeek = parseFloat(server_data.dayOfWeek);
         _onGetWhen(thisptr, date, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetWho = function(_onGetWho)
@@ -796,7 +1134,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.who is a string
         _onGetWho(thisptr, server_data.who, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetWhy = function(_onGetWhy)
@@ -811,7 +1149,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.why is a string
         _onGetWhy(thisptr, server_data.why, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetWidth = function(_onGetWidth)
@@ -826,7 +1164,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.width is a number
         _onGetWidth(thisptr, parseInt(server_data.width), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // key is a string
     // value is a string
@@ -843,7 +1181,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutExtraData(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // ink is a string
     this.PutInk = function(ink, _onPutInk)
@@ -858,7 +1196,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInk(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // sigData type is sigsdkptr.Variant
     this.PutSigData = function(sigData, _onPutSigData)
@@ -873,7 +1211,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutSigData(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // sigText is a string
     this.PutSigText = function(sigText, _onPutSigText)
@@ -888,7 +1226,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutSigText(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // bitmapURL type is a url
     this.ReadEncodedBitmap = function(bitmapURL, _onReadEncodedBitmap)
@@ -906,7 +1244,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onReadEncodedBitmap(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // mime_type type is a string
     // width is an integer
@@ -950,7 +1288,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
               bmp.image.src = 'data:image/' + mime_type + ';base64,' + server_data.base64;
             }
             else {
-              bmp.image.src = server_url + server_data.bitmapHandle + "?session=" + sigsdkptr.session;
+              bmp.image.src = server_address + '/' + server_data.bitmapHandle + "?session=" + sigsdkptr.session;
             }
           }
           else if (1 == server_data.isBase64)
@@ -963,7 +1301,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
           _onRenderBitmap(thisptr, null, status);
         }
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback)
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback)
     }
     // key is a string
     // value is a sigsdkptr.Variant
@@ -980,7 +1318,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSetProperty(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
   }
   
@@ -998,7 +1336,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onConstructor(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     // sigCtl is a sigsdkptr.SigCtl
     // who is a string
     // why is a string
@@ -1034,7 +1372,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.status type is sigsdkptr.DynamicCaptureResult
         _onCapture(thisptr, sigObj, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetLicence = function(_onGetLicence) {
@@ -1048,7 +1386,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.licence type is string
         _onGetLicence(thisptr, server_data.licence, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // key type is string
     this.GetProperty = function(key, _onGetProperty) {
@@ -1064,7 +1402,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         property.Parse(server_data, "property");
         _onGetProperty(thisptr, property, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // licence type is string
     this.PutLicence = function(licence, _onPutLicence) {
@@ -1078,7 +1416,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutLicence(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // key type is string
     // value type is sigsdkptr.Variant
@@ -1094,7 +1432,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSetProperty(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
   }
@@ -1114,7 +1452,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onConstructor(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     
     this.AboutBox = function(_onAboutBox)
     {      
@@ -1135,7 +1473,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onAboutBox(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     //key is a string
     this.GetAppData = function(key, _onGetAppData)
@@ -1152,7 +1490,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         appData.Parse(server_data, "appData");
         _onGetAppData(thisptr, appData, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*
     this.GetBackColor = function(_onGetBackColor)
@@ -1167,7 +1505,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.appData is an OLE_COLOR (number)
         _onGetBackColor(thisptr, parseInt(server_data.backColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBackStyle = function(_onGetBackStyle)
@@ -1182,7 +1520,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.backStyle is a number
         _onGetBackStyle(thisptr, parseInt(server_data.backStyle), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderColor = function(_onGetBorderColor)
@@ -1197,7 +1535,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderColor is an OLE_COLOR (number)
         _onGetBorderColor(thisptr, parseInt(server_data.borderColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderStyle = function(_onGetBorderStyle)
@@ -1212,7 +1550,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderStyle is a number
         _onGetBorderStyle(thisptr, parseInt(server_data.borderStyle), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderVisible = function(_onGetBorderVisible)
@@ -1227,7 +1565,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderVisible is a bool
         _onGetBorderVisible(thisptr, Boolean(1 == parseInt(server_data.borderVisible)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderWidth = function(_onGetBorderWidth)
@@ -1242,7 +1580,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderWidth is a number
         _onGetBorderWidth(thisptr, parseInt(server_data.borderWidth), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetCaption = function(_onGetCaption)
@@ -1257,7 +1595,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.caption is a string
         _onGetCaption(thisptr, server_data.caption, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetCtlPadding = function(_onGetCtlPadding)
@@ -1272,7 +1610,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.ctlPadding is a number
         _onGetCtlPadding(thisptr, parseInt(server_data.ctlPadding), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetDisplayMode = function(_onGetDisplayMode)
@@ -1287,7 +1625,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.displayMode is a sigsdkptr.DisplayMode
         _onGetDisplayMode(thisptr, parseInt(server_data.displayMode), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetEnabled = function(_onGetEnabled)
@@ -1302,7 +1640,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.enabled is a bool
         _onGetEnabled(thisptr, Boolean(1 == parseInt(server_data.enabled)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetForeColor = function(_onGetForeColor)
@@ -1317,7 +1655,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.foreColor is an OLE_COLOR (number)
         _onGetForeColor(thisptr, parseInt(server_data.foreColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetInkColor = function(_onGetInkColor)
@@ -1332,7 +1670,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inkColor is an OLE_COLOR (number)
         _onGetInkColor(thisptr, parseInt(server_data.inkColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetInkWidth = function(_onGetInkWidth)
@@ -1347,7 +1685,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inkWidth is a number
         _onGetInkWidth(thisptr, parseFloat(server_data.inkWidth), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     */
     this.GetInputData = function(_onGetInputData)
@@ -1362,7 +1700,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inputData is a string
         _onGetInputData(thisptr, server_data.inputData, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*
     this.GetInputSignature = function(_onGetInputSignature)
@@ -1377,7 +1715,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inputSignature is a string
         _onGetInputSignature(thisptr, server_data.inputSignature, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetInputWho = function(_onGetInputWho)
@@ -1392,7 +1730,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inputWho is a string
         _onGetInputWho(thisptr, server_data.inputWho, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetInputWhy = function(_onGetInputWhy)
@@ -1407,7 +1745,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inputWhy is a string
         _onGetInputWhy(thisptr, server_data.inputWhy, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     */
@@ -1421,7 +1759,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.licence is a string
         _onGetLicence(thisptr, server_data.licence, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
 
     // key is a string
@@ -1439,7 +1777,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         property.Parse(server_data, "property");
         _onGetProperty(thisptr, property, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*
     this.GetRotation = function(_onGetRotation)
@@ -1454,7 +1792,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.rotation is a number
         _onGetRotation(thisptr, parseInt(server_data.rotation), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetShowWhen = function(_onGetShowWhen)
@@ -1469,7 +1807,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.showWhen is a sigsdkptr.ShowText
         _onGetShowWhen(thisptr, parseInt(server_data.showWhen), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetShowWho = function(_onGetShowWho)
@@ -1484,7 +1822,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.showWho is a sigsdkptr.ShowText
         _onGetShowWho(thisptr, parseInt(server_data.showWho), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetShowWhy = function(_onGetShowWhy)
@@ -1499,7 +1837,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.showWhy is a sigsdkptr.ShowText
         _onGetShowWhy(thisptr, parseInt(server_data.showWhy), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     */
     this.GetSignature = function(_onGetSignature)
@@ -1515,7 +1853,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         sigObj.handle = server_data.signatureHandle;
         _onGetSignature(thisptr, sigObj, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*
     this.GetTabStop = function(_onGetTabStop)
@@ -1530,7 +1868,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.tabStop is a bool
         _onGetTabStop(thisptr, Boolean(1 == parseInt(server_data.tabStop)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetWhenFormat = function(_onGetWhenFormat)
@@ -1545,7 +1883,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.whenFormat is a string
         _onGetWhenFormat(thisptr, server_data.whenFormat, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetZoom = function(_onGetZoom)
@@ -1560,7 +1898,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.zoom is a number
         _onGetZoom(thisptr, parseInt(server_data.zoom), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }*/
     // key is a string
     // val is sigsdkptr.Variant
@@ -1577,7 +1915,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutAppData(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*// backColor type is OLE_COLOR (number)
     this.PutBackColor = function(backColor, _onPutBackColor)
@@ -1592,7 +1930,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBackColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // backStyle type is OLE_COLOR (number)
     this.PutBackStyle = function(backStyle, _onPutBackStyle)
@@ -1607,7 +1945,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBackStyle(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderColor type is OLE_COLOR (number)
     this.PutBorderColor = function(borderColor, _onPutBorderColor)
@@ -1622,7 +1960,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderStyle type is a number
     this.PutBorderStyle = function(borderStyle, _onPutBorderStyle)
@@ -1637,7 +1975,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderStyle(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderVisible type is bool
     this.PutBorderVisible = function(borderVisible, _onPutBorderVisible)
@@ -1652,7 +1990,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderVisible(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderWidth is a number
     this.PutBorderWidth = function(borderWidth, _onPutBorderWidth)
@@ -1667,7 +2005,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderWidth(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // caption type is string
     this.PutCaption = function(caption, _onPutCaption)
@@ -1682,7 +2020,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutCaption(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // ctlPadding is a number
     this.PutCtlPadding = function(ctlPadding, _onPutCtlPadding)
@@ -1697,7 +2035,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutCtlPadding(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // displayMode type is sigsdkptr.DisplayMode (number)
     this.PutDisplayMode = function(displayMode, _onPutDisplayMode)
@@ -1712,7 +2050,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutDisplayMode(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // enabled type is bool
     this.PutEnabled = function(enabled, _onPutEnabled)
@@ -1727,7 +2065,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutEnabled(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // foreColor type is OLE_COLOR (number)
     this.PutForeColor = function(foreColor, _onPutForeColor)
@@ -1742,7 +2080,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutForeColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // inkColor type is OLE_COLOR (number)
     this.PutInkColor = function(inkColor, _onPutInkColor)
@@ -1757,7 +2095,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInkColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // inkWidth is a number
     this.PutInkWidth = function(inkWidth, _onPutInkWidth)
@@ -1772,7 +2110,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInkWidth(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }*/
     // inputData type is string
     this.PutInputData = function(inputData, _onPutInputData)
@@ -1787,7 +2125,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInputData(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*// inputSignature type is string
     this.PutInputSignature = function(inputSignature, _onPutInputSignature)
@@ -1802,7 +2140,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInputSignature(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // inputWho type is string
     this.PutInputWho = function(inputWho, _onPutInputWho)
@@ -1817,7 +2155,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInputWho(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // inputWhy type is string
     this.PutInputWhy = function(inputWhy, _onPutInputWhy)
@@ -1832,7 +2170,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutInputWhy(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }*/
     // licence type is string
     this.PutLicence = function(licence, _onPutLicence)
@@ -1847,7 +2185,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutLicence(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // properties type is string
     this.PutProperties = function(properties, _onPutProperties)
@@ -1862,7 +2200,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutProperties(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*// font type is sigsdkptr.Variant (sigsdkptr.VariantType.VARIANT_FONT)
     this.PutRefFont = function(font, _onPutRefFont)
@@ -1877,7 +2215,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutRefFont(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // rotation is a number
     this.PutRotation = function(rotation, _onPutRotation)
@@ -1892,7 +2230,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutRotation(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // showWhen type is sigsdkptr.ShowText
     this.PutShowWhen = function(showWhen, _onPutShowWhen)
@@ -1907,7 +2245,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutShowWhen(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // showWho type is sigsdkptr.ShowText
     this.PutShowWho = function(showWho, _onPutShowWho)
@@ -1922,7 +2260,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutShowWho(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // showWhy type is sigsdkptr.ShowText
     this.PutShowWhy = function(showWhy, _onPutShowWhy)
@@ -1937,7 +2275,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutShowWhy(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }*/
     // sigObj type is sigsdkptr.SigObj
     this.PutSignature = function(sigObj, _onPutSignature)
@@ -1952,7 +2290,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutSignature(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     /*// tabStop type is bool
     this.PutTabStop = function(tabStop, _onPutTabStop)
@@ -1967,7 +2305,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutTabStop(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // whenFormat type is string
     this.PutWhenFormat = function(whenFormat, _onPutWhenFormat)
@@ -1982,7 +2320,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutWhenFormat(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // zoom type is a number
     this.PutZoom = function(zoom, _onPutZoom)
@@ -1997,7 +2335,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutZoom(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }*/
     // key is a string
     // value is sigsdkptr.Variant 
@@ -2014,7 +2352,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSetProperty(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
   }
@@ -2034,7 +2372,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onConstructor(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     
     this.Clear = function(_onClear)
     {
@@ -2047,7 +2385,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onClear(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetData = function(_onGetData)
@@ -2062,7 +2400,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       // server_data.data is a string
         _onGetData(thisptr, server_data.data, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
         
     this.GetEncryptionType = function(_onGetEncryptionType)
@@ -2077,7 +2415,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.encryptionType type is sigsdkptr.EncryptAlg
         _onGetEncryptionType(thisptr, parseInt(server_data.encryptionType), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
         
     this.GetMaxLength = function(_onGetMaxLength)
@@ -2092,7 +2430,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.maxLength is an integer
         _onGetMaxLength(thisptr, parseInt(server_data.maxLength), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
         
     this.GetMinLength = function(_onGetMinLength)
@@ -2107,7 +2445,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.minLength is an integer
         _onGetMinLength(thisptr, parseInt(server_data.minLength), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
         
     this.GetProperty = function(name, _onGetProperty)
@@ -2124,7 +2462,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         property.Parse(server_data, "property");
         _onGetProperty(thisptr, server_data.property, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
         
     this.GetText = function(_onGetText)
@@ -2139,7 +2477,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.text is a string
         _onGetText(thisptr, server_data.text, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // maxLength is an integer    
     this.PutMaxLength = function(maxLength, _onPutMaxLength)
@@ -2154,7 +2492,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutMaxLength(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // minLength is an integer    
     this.PutMinLength = function(minLength, _onPutMinLength)
@@ -2169,7 +2507,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutMinLength(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // type is a sigsdkptr.EncryptAlg
     // key is a sigsdkptr.Variant (with type either VARIANT_BASE64 or a base64 encoded VARIANT_TEXT string)
@@ -2186,7 +2524,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSetEncryption(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // name is a string
     // value is    a string
@@ -2203,7 +2541,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onSetProperty(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
   }
@@ -2433,7 +2771,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       thisptr.handle = server_data.handle;
       _onConstructor(thisptr, parseInt(server_data.status));
     }
-    JSONreq.getJSON(server_url + "wacom.js", data, callback);
+    JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     
     //objType type is sigsdkptr.ObjectType
     //id type is string
@@ -2462,7 +2800,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onAddObject(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     //primType type is sigsdkptr.PrimitiveType
     //X1 type type is a number, text or sigsdkptr.Variant
@@ -2497,7 +2835,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onAddPrimitive(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.Close = function(_onClose)
@@ -2511,7 +2849,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onClose(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.Display = function(_onDisplay)
@@ -2525,7 +2863,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onDisplay(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // id type is string
     this.FireClick = function(id, _onFireClick)
@@ -2540,7 +2878,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onFireClick(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBackColor = function(_onGetBackColor)
@@ -2555,7 +2893,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.backColor type is OLE_COLOR (number)
         _onGetBackColor(thisptr, parseInt(server_data.backColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderColor = function(_onGetBorderColor)
@@ -2570,7 +2908,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.backColor type is OLE_COLOR (number)
         _onGetBorderColor(thisptr, parseInt(server_data.borderColor), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderStyle = function(_onGetBorderStyle)
@@ -2585,7 +2923,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.borderStyle type is a number
         _onGetBorderStyle(thisptr, parseInt(server_data.borderStyle), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderVisible = function(_onGetBorderVisible)
@@ -2600,7 +2938,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderVisible is a bool
         _onGetBorderVisible(thisptr, Boolean(1 == parseInt(server_data.borderVisible)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetBorderWidth = function(_onGetBorderWidth)
@@ -2615,7 +2953,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.borderWidth is a number
         _onGetBorderWidth(thisptr, parseInt(server_data.borderWidth), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetEnableWizardDisplay = function(_onGetEnableWizardDisplay)
@@ -2630,7 +2968,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.enableWD is a bool
         _onGetEnableWizardDisplay(thisptr, Boolean(1 == parseInt(server_data.enableWD)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetFont = function(_onGetFont)
@@ -2646,7 +2984,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         font.Parse(server_data, "font");
         _onGetFont(thisptr, font, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetInkingPad = function(_onGetInkingPad)
@@ -2661,7 +2999,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.inkingPad is a bool
         _onGetInkingPad(thisptr, Boolean(1 == parseInt(server_data.inkingPad)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetLicence = function(_onGetLicence) {
@@ -2675,7 +3013,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.licence type is string
         _onGetLicence(thisptr, server_data.licence, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // id type is string
     this.GetObjectState = function(id, _onGetObjectState) {
@@ -2691,7 +3029,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         state.Parse(server_data, "objState");
         _onGetObjectState(thisptr, state, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetPadHeight = function(_onGetPadHeight) {
@@ -2705,7 +3043,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.height type is a number
         _onGetPadHeight(thisptr, parseFloat(server_data.height), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetPadWidth = function(_onGetPadWidth) {
@@ -2719,7 +3057,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         //server_data.width type is a number
         _onGetPadWidth(thisptr, parseFloat(server_data.width), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }    
     // key is a string
     this.GetProperty = function(key, _onGetProperty) {
@@ -2735,7 +3073,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         property.Parse(server_data, "property");
         _onGetProperty(thisptr, property, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetVisibleWindow = function(_onGetVisibleWindow) {
@@ -2749,7 +3087,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.visible type is boolean
         _onGetVisibleWindow(thisptr, Boolean(1 == parseInt(server_data.visible)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.GetZoom = function(_onGetZoom) {
@@ -2763,7 +3101,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.zoom type is a number
         _onGetZoom(thisptr, parseFloat(server_data.zoom), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.PadConnect = function(_onPadConnect) {
@@ -2777,7 +3115,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         // server_data.padConnect type is a bool
         _onPadConnect(thisptr, Boolean(1 == parseInt(server_data.padConnect)), parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.PadDisconnect = function(_onPadDisconnect) {
@@ -2790,7 +3128,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPadDisconnect(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // backColor type is OLE_COLOR (number)
     this.PutBackColor = function(backColor, _onPutBackColor)
@@ -2805,7 +3143,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBackColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderColor type is OLE_COLOR (number)
     this.PutBorderColor = function(borderColor, _onPutBorderColor)
@@ -2820,7 +3158,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderColor(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderStyle type is a number
     this.PutBorderStyle = function(borderStyle, _onPutBorderStyle)
@@ -2835,7 +3173,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderStyle(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     // borderVisible type is bool
@@ -2851,7 +3189,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderVisible(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // borderWidth is a number
     this.PutBorderWidth = function(borderWidth, _onPutBorderWidth)
@@ -2866,7 +3204,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutBorderWidth(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // enableWD is a bool
     this.PutEnableWizardDisplay = function(enableWD, _onPutEnableWizardDisplay)
@@ -2881,7 +3219,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutEnableWizardDisplay(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // font type is sigsdkptr.Variant (sigsdkptr.VariantType.VARIANT_FONT)
     this.PutFont = function(font, _onPutFont)
@@ -2896,7 +3234,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutFont(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // licence type is a string
     this.PutLicence = function(licence, _onPutLicence) {
@@ -2910,7 +3248,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutLicence(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // height type is a number
     this.PutPadHeight = function(height, _onPutPadHeight) {
@@ -2924,7 +3262,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutPadHeight(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // width type is a number
     this.PutPadWidth = function(width, _onPutPadWidth) {
@@ -2938,7 +3276,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutPadWidth(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // properties type is a string
     this.PutProperties = function(properties, _onPutProperties) {
@@ -2952,7 +3290,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutProperties(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // font type is sigsdkptr.Variant (sigsdkptr.VariantType.VARIANT_FONT)
     this.PutRefFont = function(font, _onPutRefFont)
@@ -2967,7 +3305,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutRefFont(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // visible type is boolean
     this.PutVisibleWindow = function(visible, _onPutVisibleWindow)
@@ -2982,7 +3320,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutVisibleWindow(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // zoom type is a real number
     this.PutZoom = function(zoom, _onPutZoom)
@@ -2997,7 +3335,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onPutZoom(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     this.Reset = function(_onReset)
@@ -3011,7 +3349,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       {
         _onReset(thisptr, parseInt(server_data.status));
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     // key type is string
     // value type is sigsdkptr.Variant
@@ -3028,7 +3366,7 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
         _onSetProperty(thisptr, parseInt(server_data.status));
       }
       value.Stringify(data, "value");
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
     var evh;
@@ -3044,18 +3382,20 @@ function WacomGSS_SignatureSDK(_onDetectRunning, service_port)
       function callback(server_data)
       {
         var update_data = { 
-                            "WizCtl": "UpdateEventHandler", 
+                            "WizCtl": "UpdateEventHandler",
                             "session": sigsdkptr.session,
                             "handle": thisptr.handle
                           };
         if(0 == parseInt(server_data.status))
         {
-          JSONreq.getJSON(server_url + "wacom.js", update_data, callback);
+          JSONreq.getJSON(server_address + "/wacom.js", update_data, callback);
         }
-        else if ("undefined" === typeof(server_data.status)) return;
+        else if ("undefined" === typeof(server_data.status))
+          return;
+
         setTimeout( function(){ evh(thisptr.handle, server_data["event-id"], parseInt(server_data["event-type"]), parseInt(server_data.status)); }, 0);
       }
-      JSONreq.getJSON(server_url + "wacom.js", data, callback);
+      JSONreq.getJSON(server_address + "/wacom.js", data, callback);
     }
     
   } // WizCtl

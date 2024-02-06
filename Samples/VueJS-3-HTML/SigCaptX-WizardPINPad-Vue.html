@@ -1,0 +1,277 @@
+﻿<!--
+/* ************************************************************************** */
+  SigCaptX-WizardControlPINPad-Vue.html
+   
+  Cross browser Signature Control test for PIN input built using the Vue JS framework
+
+  Demonstrates using the Wizard Control for PIN pad entry.
+  
+  Note that the properties for all the wizard control objects displayed on the pad 
+  are defined in SigCaptX-WizardPINPad-PadDefs.js
+  
+  Copyright (c) 2022 Wacom Co. Ltd. All rights reserved.
+  
+   v1.0
+  
+/* ************************************************************************** */
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SigCaptX-WizardPINPad</title>
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="wgssSigCaptX.js"></script>
+    <script src="base64.js"></script>
+    <script src="SigCaptX-WizardPINPad-Step1.js"></script>
+    <script src="SigCaptX-WizardPINPad-PadDefs.js"></script>
+    <script src="SigCaptX-SessionControl.js"></script>
+    <script src="SigCaptX-Utils.js"></script>
+    <script src="SigCaptX-Globals.js"></script>
+    
+    <script type="importmap">   // Needed for Vue.js
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+    
+    <script type="module">
+
+      vue_app = Vue.createApp({
+        data() {
+          return {
+            pageHeading: 'Wizard PIN Pad',
+            stuPadHeight: 0,
+            stuPadWidth: 0,
+            userMsgs: '',
+            userMsgBox: null,
+            displayWizard: true
+          }
+        },
+        methods: {
+        
+          userMsg: function(txt) 
+          {
+            this.userMsgs += txt + "\n";
+            this.userMsgBox.scrollTop = this.userMsgBox.scrollHeight; // scroll to end
+          },
+          clearTextBox: function()
+          {
+            this.userMsgs = "";
+          },       
+          body_onload : function()
+          {
+            this.userMsgBox = document.getElementById("txtDisplay");
+            this.clearTextBox();
+            this.userMsg("Starting up SigCaptX processes");
+            actionWhenRestarted();
+          },
+          
+          start_stop : function(numScreens)
+          {
+            this.userMsg("Starting wizard with " + numScreens + " screens");
+            if( scriptIsRunning ) 
+            {
+              this.stop();
+            }
+            else
+            {
+              this.wizStart(numScreens);
+            }
+          },
+          
+          stop : function()
+          {
+            if( !scriptIsRunning ) 
+            {
+              this.userMsg("Script not running");
+            }
+            else
+            {
+              this.stopScript();
+            }
+          },
+          
+          script_Completed : function(stopScriptNow)
+          {
+            this.userMsg("Script completed");
+            if (stopScriptNow)
+            {
+              this.stopScript();
+            }
+          },
+          
+          script_Cancelled : function()
+          {
+            this.userMsg("Script cancelled");
+            this.stop();
+          },
+          
+          // Function called to stop the wizard script
+          stopScript:function()
+          {
+            scriptIsRunning = false;
+            document.getElementById("btnStartStopWizard").value = "Start Wizard";
+            if(null != wizCtl)
+            {
+              wizCtl.Reset(this.onReset);
+            }
+          },
+          onReset: function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl Reset", status))
+            {
+              wizCtl.Close(this.onClose);
+            }
+          },
+
+          onClose:function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PadDisconnect", status))
+            {
+              wizCtl = null;
+              this.userMsg("Pad disconnected");
+            }
+          },
+          // Function called to start off the wizard session
+          wizStart: function(numScreens)
+          {
+            numScreenDisplays = numScreens;
+            
+            if(!wgssSignatureSDK.running)
+            {
+              this.userMsg("Session error. Restarting the session.");
+              actionWhenRestarted(this.wizardStart);
+              return;
+            }
+            
+            if(null != wizCtl)
+            {
+              wizCtl.Close(this.onWizClose);
+              return;
+            }
+            this.start_wizard();
+          },
+          
+          onWizClose: function(wizCtlV, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+            {
+              this.userMsg("Session error. Restarting the session.");
+              actionWhenRestarted(this.wizardStart);
+            }
+            else
+            {
+              wizCtl = null;
+              this.start_wizard();
+            }
+          },
+            
+          start_wizard: function()
+          {
+            scriptIsRunning = true;
+            wizCtl = new wgssSignatureSDK.WizCtl(this.onWizCtlConstructor);
+          },
+            
+          onWizCtlConstructor: function(wizCtlV, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.OK == status)
+            {
+              this.userMsg("Enabling licence");
+              wizCtl.PutLicence(LICENCEKEY, this.onWizCtlPutLicence);
+            }
+            else
+            {
+              this.userMsg("WizCtl Constructor error: " + status);
+              wizCtl = null;
+              if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+              {
+                this.userMsg("Session error. Restarting the session.");
+                actionWhenRestarted(this.wizardStart);
+              }
+            }
+          },
+            
+          onWizCtlPutLicence: function(sigCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PutLicence", status) == true)
+            {
+              wizCtl.PutVisibleWindow(this.displayWizard, this.onPutVisibleWindow);
+            }
+          },
+            
+          onPutVisibleWindow: function(wizCtlV, status)
+          {
+            if(callbackStatusOK("WizCtl PutVisibleWindow", status) == true)
+            {
+              wizCtl.PadConnect(this.onPadConnect);
+            }
+          },
+          
+          onPadConnect: function(wizCtlV, connected, status)
+          {
+            if(wgssSignatureSDK.ResponseStatus.OK == status && connected)
+            {
+              wizCtl.GetPadWidth(this.onGetPadWidth);
+            }
+            else
+            {
+              this.userMsg("Unable to make connection to the Pad. Check it is plugged in and try again.");
+              wizCtl.Close(this.onErrorClose);
+            }
+          },
+          
+          onErrorClose: function(wizCtlG, status) 
+          {
+            wizCtl = null;
+          },
+            
+          onGetPadWidth: function(wizCtlV, padWidth, status)
+          {
+            if(callbackStatusOK("WizCtl GetPadWidth", status) == true)
+            {
+              this.stuPadWidth = padWidth;
+              wizCtl.GetPadHeight(this.onGetPadHeight);
+            }
+          },
+            
+          onGetPadHeight: function(wizCtlV, padHeight, status)
+          {
+            var buttonTextSource;
+            var chkBoxSize;
+
+            if(wgssSignatureSDK.ResponseStatus.OK == status)
+            { 
+              this.stuPadHeight = padHeight;
+       
+              pad = new CPad_STU(this.stuPadWidth, this.stuPadHeight, checkSizeSelection.STANDARD);
+          
+              display_1 = new screen_Display1(pad);
+              step1();
+            }
+            else
+            {
+              this.userMsg("WizCtl PutVisibleWindow error: " + status);
+            }
+          }
+        },
+        mounted() {
+          this.body_onload();  //  Make sure the SigCaptX service and server processes are running
+        }
+      }).mount('#app')
+    </script>
+    
+  </head>
+  <body>
+    <div id="app" style="width:100%">
+      <h2>{{ pageHeading }}</h2>
+      <br/>
+      <input type="button" id="btnStartStopWizard" value="Start Wizard" style="width:35mm" @click="start_stop(1)"
+            title="Starts/Stops a Wizard Script" />
+      <input type="checkbox" id="chkDisplayWizard" checked="checked" v-model="displayWizard"/>Display Wizard Control Window
+      <br/><br/>
+      <textarea cols="125" rows="25" id="txtDisplay" v-model="userMsgs"></textarea>
+    </div>
+  </body>
+</html>
