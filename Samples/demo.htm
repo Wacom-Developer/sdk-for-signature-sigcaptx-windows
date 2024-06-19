@@ -72,7 +72,7 @@ function addTextObject(wizCtl, xPos, yPos, textType, textValue, callBack)
   var objData = new wgssSignatureSDK.Variant();
   var options = new wgssSignatureSDK.Variant();
   
-  showMessage("Placing text object of type " + textType + " at pos " + xPos + "/" + yPos + " with value " + textValue);
+  // showMessage("Placing text object of type " + textType + " at pos " + xPos + "/" + yPos + " with value " + textValue);
   xVar.Set(xPos);
   yVar.Set(yPos);
   objData.Set(textValue);
@@ -87,7 +87,7 @@ function redrawSignature(sigImageIsBase64, bmpObj)
       
   if(sigImageIsBase64)
   {
-    showMessage("Base64 bitmap retrieved:<br>");
+    // showMessage("Base64 bitmap retrieved:<br>");
     
     img = new Image();
     img.src = "data:image/png;base64," + bmpObj;
@@ -103,7 +103,7 @@ function redrawSignature(sigImageIsBase64, bmpObj)
   }
   else
   {
-    showMessage("Bitmap retrieved, rendering image...");
+    // showMessage("Bitmap retrieved, rendering image...");
     
     var imageBox = document.getElementById("imageBox");
 
@@ -136,7 +136,7 @@ function setPadSpecificProperties(padWidth)
   switch (padWidth)
   {
     case PADWIDTH_300:
-         showMessage("Setting up pad properties for STU-300");
+         // showMessage("Setting up pad properties for STU-300");
          pad.ButtonWidth = 80;
          pad.ButtonFontSize = 15;
          pad.Model = padRange.STU300;
@@ -347,7 +347,7 @@ function setPadSpecificProperties(padWidth)
          pad.yWhy = 385;
          break;
   }
-  showMessage("Pad found is " + pad.Model);
+  // showMessage("Pad found is " + pad.Model);
 }
   
 function timedDetect() 
@@ -458,7 +458,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl Display");
+      // showMessage("WizCtl Display");
       wizCtl = wizCtlV;
       wizCtlV.SetEventHandler(wizPin_Handler);
     }
@@ -472,7 +472,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl Zoom 100.0");
+      // showMessage("WizCtl Zoom 100.0");
       setTimeout(wizCtlV.Display(onDisplay), 1000);
     }
     else
@@ -485,7 +485,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl Add Ok Button");
+      // showMessage("WizCtl Add Ok Button");
       wizCtlV.PutZoom(100, onPutZoom);
     }
     else
@@ -498,7 +498,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onAddClear");    
+      // showMessage("WizCtl onAddClear");    
       addButtonObject(wizCtlV, buttonEvent.OK, pad.xOKButton, pad.yOKButton, buttonEvent.OK, pad.ButtonWidth, onAddOk);
     }
     else
@@ -511,7 +511,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onAddCancel"); 
+      // showMessage("WizCtl onAddCancel"); 
       addButtonObject(wizCtlV, buttonEvent.CLEAR, pad.xClearButton, pad.yClearButton, buttonEvent.CLEAR, pad.ButtonWidth, onAddClear);
     }
     else
@@ -524,7 +524,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onSetButtonFont");
+      // showMessage("WizCtl onSetButtonFont");
       addButtonObject(wizCtlV, buttonEvent.CANCEL, pad.xCancelButton, pad.yCancelButton, buttonEvent.CANCEL, pad.ButtonWidth, onAddCancel);
     }
     else
@@ -537,7 +537,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onAddInputEcho");
+      // showMessage("WizCtl onAddInputEcho");
       setFont(wizCtlV, pad.Font, pad.ButtonFontSize, onSetButtonFont);
     }
     else
@@ -552,14 +552,14 @@ function wizPin()  // The functions below are executed in reverse order
     
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onPutFont2");
+      // showMessage("WizCtl onPutFont2");
       
       var xPos = new wgssSignatureSDK.Variant();
       var yPos = new wgssSignatureSDK.Variant();
       
       xPos.Set(pad.xPinEcho);
       yPos.Set(pad.yPinEcho);
-      showMessage("Input Echo x and y coordinates set to " + pad.xPinEcho + "/" + pad.yPinEcho);
+      // showMessage("Input Echo x and y coordinates set to " + pad.xPinEcho + "/" + pad.yPinEcho);
       
       var vIE = new wgssSignatureSDK.Variant();
       var option = new wgssSignatureSDK.Variant();
@@ -577,7 +577,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onAddInputObj. PinSize is " + pad.PinSize);      
+      // showMessage("WizCtl onAddInputObj. PinSize is " + pad.PinSize);      
       setFont(wizCtlV, pad.Font, pad.PinSize, onPutFont2);
     }
     else
@@ -590,7 +590,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutMaxLengthInputObj");
+      // showMessage("onPutMaxLengthInputObj");
       var vIO = new wgssSignatureSDK.Variant();
       var xPos = new wgssSignatureSDK.Variant();
       var yPos = new wgssSignatureSDK.Variant();
@@ -615,7 +615,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutMinLengthInputObj");
+      // showMessage("onPutMinLengthInputObj");
       inputObjV.PutMaxLength(4, onPutMaxLengthInputObj);
     }
     else
@@ -628,7 +628,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onGetPropertyInputObj");
+      // showMessage("onGetPropertyInputObj");
       inputObjV.PutMinLength(1, onPutMinLengthInputObj);
     }
     else
@@ -641,7 +641,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onClearInputObj");
+      // showMessage("onClearInputObj");
       inputObjV.GetProperty("Component_FileVersion", onGetPropertyInputObj);
     }
     else
@@ -654,7 +654,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onConstructorInputObj");
+      // showMessage("onConstructorInputObj");
       inputObjV.Clear(onClearInputObj);
     }
     else
@@ -667,7 +667,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin9");
+      // showMessage("onAddPin9");
       this.inputObj = new wgssSignatureSDK.InputObj(onConstructorInputObj);
     }
     else
@@ -680,7 +680,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin8");
+      // showMessage("onAddPin8");
       addButtonObject(wizCtlG, "9", pad.xPin9Object, pad.yPin9Object, "9", pad.KeyWidth, onAddPin9);   
     }
     else
@@ -693,7 +693,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin7");
+      // showMessage("onAddPin7");
       addButtonObject(wizCtlG, "8", pad.xPin8Object, pad.yPin8Object, "8", pad.KeyWidth, onAddPin8);   
     }
     else
@@ -706,7 +706,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin6");
+      // showMessage("onAddPin6");
       addButtonObject(wizCtlG, "7", pad.xPin7Object, pad.yPin7Object, "7", pad.KeyWidth, onAddPin7);   
     }
     else
@@ -719,7 +719,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin5");
+      // showMessage("onAddPin5");
       addButtonObject(wizCtlG, "6", pad.xPin6Object, pad.yPin6Object, "6", pad.KeyWidth, onAddPin6);   
     }
     else
@@ -732,7 +732,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin4");
+      // showMessage("onAddPin4");
       addButtonObject(wizCtlG, "5", pad.xPin5Object, pad.yPin5Object, "5", pad.KeyWidth, onAddPin5);   
     }
     else
@@ -745,7 +745,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin3");
+      // showMessage("onAddPin3");
       addButtonObject(wizCtlG, "4", pad.xPin4Object, pad.yPin4Object, "4", pad.KeyWidth, onAddPin4);   
     }
     else
@@ -758,7 +758,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin2");
+      // showMessage("onAddPin2");
       addButtonObject(wizCtlG, "3", pad.xPin3Object, pad.yPin3Object, "3", pad.KeyWidth, onAddPin3);   
     }
     else
@@ -771,7 +771,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddPin1");
+      // showMessage("onAddPin1");
       addButtonObject(wizCtlG, "2", pad.xPin2Object, pad.yPin2Object, "2", pad.KeyWidth, onAddPin2);   
     }
     else
@@ -784,7 +784,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onSetFontPinButton");
+      // showMessage("onSetFontPinButton");
       addButtonObject(wizCtlG, "1", pad.xPin1Object, pad.yPin1Object, "1", pad.KeyWidth, onAddPin1);   
     }
     else
@@ -809,7 +809,7 @@ function wizPin()  // The functions below are executed in reverse order
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutPinFont");
+      // showMessage("onPutPinFont");
       // We have already got the height and width now so just continue with adding
       // the text objects to the wizctl
 	  
@@ -836,7 +836,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("SigText: " + data);
+      // showMessage("SigText: " + data);
       var vData = new wgssSignatureSDK.Variant();
       vData.type = wgssSignatureSDK.VariantType.VARIANT_BASE64;
       vData.base64 = data;
@@ -851,7 +851,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("Additional Data/MachineOS: " + additionalData);
+      // showMessage("Additional Data/MachineOS: " + additionalData);
       sigObjV.GetSigText(onGetSigText);
     }
     else
@@ -862,7 +862,7 @@ function wizCapture()
   
   function onRenderBitmap(sigObjV, bmpObj, status) 
   {
-    showMessage("onRenderBitmap");
+    // showMessage("onRenderBitmap");
     if(status === wgssSignatureSDK.ResponseStatus.OK) 
     {
       showMessage("Displaying signature on HTML form");
@@ -879,7 +879,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("Rendering Signature into bitmap with width and height: " + sigImageBox.offsetWidth + " " + sigImageBox.offsetHeight);
+      // showMessage("Rendering Signature into bitmap with width and height: " + sigImageBox.offsetWidth + " " + sigImageBox.offsetHeight);
       sigImageBase64 = true;
       var flags = wgssSignatureSDK.RBFlags.RenderOutputBase64 |
                   wgssSignatureSDK.RBFlags.RenderColor24BPP;
@@ -907,7 +907,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("Retrieving signature");
+      // showMessage("Retrieving signature");
       sigCtl.GetSignature(onGetSignature);
     }
     else
@@ -924,7 +924,7 @@ function wizCapture()
       {
         if(status === wgssSignatureSDK.ResponseStatus.OK)
         {
-          showMessage("EVENT " + id + " " + type);
+          // showMessage("EVENT " + id + " " + type);
           if(id === buttonEvent.OK)
           {
             showMessage("Closing wizard");
@@ -941,7 +941,7 @@ function wizCapture()
           showMessage("EVENT WizCtl closed");
         }
       }
-      showMessage("WizCtl Zoom 100.0");
+      // showMessage("WizCtl Zoom 100.0");
       wizCtlG.SetEventHandler(eventHandler);
       setTimeout(wizCtlG.Display(onDisplay), 1000);
     }
@@ -955,7 +955,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddOk");
+      // showMessage("onAddOk");
       wizCtlG.PutZoom(100, onPutZoom);
     }
     else
@@ -968,7 +968,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddClear");   
+      // showMessage("onAddClear");   
       addButtonObject(wizCtlG, buttonEvent.OK, pad.xOKButton, pad.yOKButton, buttonEvent.OK, pad.ButtonWidth, onAddOk);
     }
     else
@@ -980,7 +980,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onAddCancel");
+      // showMessage("onAddCancel");
       addButtonObject(wizCtlG, buttonEvent.CLEAR, pad.xClearButton, pad.yClearButton, buttonEvent.CLEAR, pad.ButtonWidth, onAddClear);
     }
     else
@@ -992,7 +992,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutButtonFont");
+      // showMessage("onPutButtonFont");
       addButtonObject(wizCtlG, buttonEvent.CANCEL, pad.xCancelButton, pad.yCancelButton, buttonEvent.CANCEL, pad.ButtonWidth, onAddCancel);
     }
     else
@@ -1003,7 +1003,7 @@ function wizCapture()
   
   function onPutWho(wizCtlG, status)
   {
-    showMessage("onPutWho");
+    // showMessage("onPutWho");
     if (status === wgssSignatureSDK.ResponseStatus.OK)
     {
       setFont(wizCtlG, pad.Font, pad.ButtonFontSize, onPutButtonFont);
@@ -1018,7 +1018,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl onPutWhy");
+      // showMessage("WizCtl onPutWhy");
       addTextObject(wizCtlG, pad.xWho, pad.yWho, "who", "J Smith", onPutWho);
     }
     else
@@ -1031,7 +1031,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutFontWhyText");
+      // showMessage("onPutFontWhyText");
       addTextObject(wizCtlG, pad.xWhy, pad.yWhy, "why", "Document approval", onPutWhy);
     }
     else
@@ -1044,7 +1044,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutSigUnderLine");
+      // showMessage("onPutSigUnderLine");
       setFont(wizCtlG, pad.Font, pad.TextSize, onPutFontWhyText);
     }
     else
@@ -1057,7 +1057,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutSigUnderLineFont");
+      // showMessage("onPutSigUnderLineFont");
       addTextObject(wizCtlG, pad.xSigUnderLine, pad.ySigUnderLine, "txt", pad.sigUnderLine, onPutSigUnderLine);
     }
     else
@@ -1070,8 +1070,8 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutSignature");
-      showMessage("Setting underline font size to " + pad.sigUnderLineFontSize);
+      // showMessage("onPutSignature");
+      // showMessage("Setting underline font size to " + pad.sigUnderLineFontSize);
       setFont(wizCtlG, pad.Font, pad.sigUnderLineFontSize, onPutSigUnderLineFont);
     }
     else
@@ -1084,10 +1084,10 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("WizCtl GetFont:");
-      showMessage("Variant type " + font.type);
-      showMessage("Font name " + font.fontName);
-      showMessage("Font size " + font.fontSize);
+      // showMessage("WizCtl GetFont:");
+      // showMessage("Variant type " + font.type);
+      // showMessage("Font name " + font.fontName);
+      // showMessage("Font size " + font.fontSize);
       
       var xVar = new wgssSignatureSDK.Variant();
       var yVar = new wgssSignatureSDK.Variant();
@@ -1107,7 +1107,7 @@ function wizCapture()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("onPutFont");
+      // showMessage("onPutFont");
       wizCtlG.GetFont(onGetFont);
     }
     else
@@ -1130,7 +1130,7 @@ function captureSignature()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("PutSigData called");
+      // showMessage("PutSigData called");
     }
     else
     {
@@ -1142,7 +1142,7 @@ function captureSignature()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("SigText: " + data);
+      // showMessage("SigText: " + data);
       var vData = new wgssSignatureSDK.Variant();
       vData.type = wgssSignatureSDK.VariantType.VARIANT_BASE64;
       vData.base64 = data;
@@ -1157,7 +1157,7 @@ function captureSignature()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("Additional Data/MachineOS: " + additionalData);
+      // showMessage("Additional Data/MachineOS: " + additionalData);
       sigObjV.GetSigText(onGetSigText);
     }
     else
@@ -1183,7 +1183,7 @@ function captureSignature()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK) 
     {
-      showMessage("Rendering bitmap");
+      // showMessage("Rendering bitmap");
       sigImageIsBase64 = false;
       var flags = wgssSignatureSDK.RBFlags.RenderOutputPicture |
                   wgssSignatureSDK.RBFlags.RenderColor24BPP;
@@ -1200,7 +1200,7 @@ function captureSignature()
   {
     if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      showMessage("Adding extra data");
+      // showMessage("Adding extra data");
       sigObjV.PutExtraData("extra key", "extra value", onPutExtraData);
     } 
     else if(status === 1) 
