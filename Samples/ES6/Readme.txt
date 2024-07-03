@@ -19,4 +19,5 @@ SigCaptX needs to run one service on the computer, as well as one background tas
 
 > Proxy settings
 
+<<<<<<< HEAD
 Occasionally a SigCaptX background task needs to use the internet, such as when ReadEncodedBitmap is called with a URL for the encoded bitmap. The default settings disable the use of a proxy. To configure the proxy, change the "use_proxy" value to "true" and change the registry values "proxy_ip", "proxy_port", "proxy_user", and "proxy_pass". 

@@ -5,9 +5,9 @@
   wizard session plus some global variables and functions for defining the object classes
   which are defined in SigCaptX-Wizard-PadDefs.js.
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2024 Wacom Co. Ltd. All rights reserved.
   
-  v4.0
+  v4.1
   
 ***************************************************************************/
 
@@ -345,7 +345,7 @@ function step2()
     if(callbackStatusOK("WizCtl PutFont", status))
     {
       // In case font colours were changed on the previous screen make sure we revert to black on white now
-      if (pad.Range == padRange.STU5X0)
+      if (pad.Range == padRange.STU5XX)
       {
         if (display_2.stepMsg2.fontForeColor != "")
         {
@@ -636,7 +636,7 @@ function step3()
     {
       // In case font colours were changed on the previous screen make sure we revert to black on white now
       
-      if (pad.Range == padRange.STU5X0)
+      if (pad.Range == padRange.STU5XX)
       {
         if (display_3.stepMsg3.fontForeColor != "")
         {

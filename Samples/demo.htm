@@ -2,12 +2,12 @@
 /* ************************************************************************** */
   demo.htm
    
-  Test program showing very basic examples of standard signature capture, wizard control capture and PIN capture
-  This is more or less unchanged from version 1 of the SigCaptX sample code and uses the original code design
+  Test program showing very basic examples of standard signature capture, 
+  wizard control capture and PIN capture
   
-  Copyright (c) 2018 Wacom Co. Ltd. All rights reserved.
+  Copyright (c) 2023 Wacom Ltd. All rights reserved.
   
-   v4.0
+   v4.1
    
 /* ************************************************************************** */
 -->
@@ -17,1087 +17,1236 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <script src="wgssSigCaptX.js"></script>
 <script src="SigCaptX-Globals.js"></script>
+<script src="demo-startsession.js"></script>
 <script src="base64.js"></script>
+<script type="text/javascript">
 
-<script type="text/javascript" id="myscript_1">
+const PADWIDTH_300 = 396;
+const PADWIDTH_430 = 320;
+const PADWIDTH_500 = 640;
+const PADWIDTH_5XX = 800;
 
-var canvas = null
-var ctx = null
+var pad;
+var padHeight;
+var padWidth;
+var sigCtl;
+var sigImageBox = null;
 
+
+function showMessage(msgText)  // Display trace message on HTML form
+{
+  document.getElementById("statusText").innerHTML += "<br>" + msgText;
+}
+
+function setFont(wizCtl, fontName, fontSize, callBack) // Set the font size ready for next object
+{
+  var font = new wgssSignatureSDK.Font(fontName, fontSize);
+  var varFont = new wgssSignatureSDK.Variant();
+  varFont.Set(font);
+  wizCtl.PutFont(varFont, callBack);
+}
+
+//  Add a button object to the wizCtl
+function addButtonObject(wizCtl, btnType, xPos, yPos, btnText, btnWidth, callBack)
+{
+  var xVar = new wgssSignatureSDK.Variant();
+  var yVar = new wgssSignatureSDK.Variant();
+  var objData = new wgssSignatureSDK.Variant();
+  var options = new wgssSignatureSDK.Variant();
+  
+  // showMessage("Placing button of type " + btnType + " at " + xPos + " " + yPos);
+  
+  xVar.Set(xPos);
+  yVar.Set(yPos);
+  objData.Set(btnText);
+  options.Set(btnWidth);
+  
+  wizCtl.AddObject(wgssSignatureSDK.ObjectType.ObjectButton, btnType, xVar, yVar, objData, options, callBack);
+}
+
+// Add a text object to the wizCtl
+function addTextObject(wizCtl, xPos, yPos, textType, textValue, callBack)
+{
+  var xVar = new wgssSignatureSDK.Variant();
+  var yVar = new wgssSignatureSDK.Variant();
+  var objData = new wgssSignatureSDK.Variant();
+  var options = new wgssSignatureSDK.Variant();
+  
+  // showMessage("Placing text object of type " + textType + " at pos " + xPos + "/" + yPos + " with value " + textValue);
+  xVar.Set(xPos);
+  yVar.Set(yPos);
+  objData.Set(textValue);
+  
+  wizCtl.AddObject(wgssSignatureSDK.ObjectType.ObjectText, textType, xVar, yVar, objData, options, callBack);
+}
+
+// Draw the signature as an image on the HTML form
+function redrawSignature(sigImageIsBase64, bmpObj)
+{
+  var imageBox = document.getElementById("imageBox");
+      
+  if(sigImageIsBase64)
+  {
+    // showMessage("Base64 bitmap retrieved:<br>");
+    
+    img = new Image();
+    img.src = "data:image/png;base64," + bmpObj;
+
+    if(null == imageBox.firstChild)
+    {
+      imageBox.appendChild(img);
+    }
+    else
+    {
+      imageBox.replaceChild(img, imageBox.firstChild);
+    }
+  }
+  else
+  {
+    // showMessage("Bitmap retrieved, rendering image...");
+    
+    var imageBox = document.getElementById("imageBox");
+
+    if(null == imageBox.firstChild)
+    {
+      imageBox.appendChild(bmpObj.image);
+    }
+    else
+    {
+      imageBox.replaceChild(bmpObj.image, imageBox.firstChild);
+    }
+  }
+}
+
+function setPadDefaultProperties()
+{  
+  this.Font = "Verdana";
+  this.xText = 30;
+  this.yText = 10;
+  this.yLSText = 28;             
+  this.KeyWidth = 60;
+  this.PinSize = 30;
+  this.Height = 0;
+  this.Width = 0;
+}
+
+// Set properties specific to different pad models
+function setPadSpecificProperties(padWidth) 
+{
+  switch (padWidth)
+  {
+    case PADWIDTH_300:
+         // showMessage("Setting up pad properties for STU-300");
+         pad.ButtonWidth = 80;
+         pad.ButtonFontSize = 15;
+         pad.Model = padRange.STU300;
+         pad.KeyWidth = 20;
+         pad.PinButtonFontSize = 10;
+         pad.PinSize = 10;
+                  
+         pad.sigUnderLine = "..........................................";
+         pad.sigUnderLineFontSize = 15; 
+         pad.TextSize = 8;
+         pad.Width = padWidth;
+         
+         pad.xCancelButton = padPosition.RIGHT;
+         pad.yCancelButton = padPosition.TOP;
+         
+         pad.xClearButton = padPosition.RIGHT;
+         pad.yClearButton = padPosition.MIDDLE;
+         
+         pad.xOKButton = padPosition.RIGHT;
+         pad.yOKButton = padPosition.BOTTOM;
+         
+         pad.xPin1Object = 50;
+         pad.yPin1Object = 30;
+         pad.xPin2Object = 90;
+         pad.yPin2Object = 30;
+         pad.xPin3Object = 130;
+         pad.yPin3Object = 30;
+         pad.xPin4Object = 50;
+         pad.yPin4Object = 54;
+         pad.xPin5Object = 90;
+         pad.yPin5Object = 54;
+         pad.xPin6Object = 130;
+         pad.yPin6Object = 54;
+         pad.xPin7Object = 50;
+         pad.yPin7Object = 78;
+         pad.xPin8Object = 90;
+         pad.yPin8Object = 78;
+         pad.xPin9Object = 130;
+         pad.yPin9Object = 78;
+         
+         pad.xPinEcho = 180;
+         pad.yPinEcho = 45;
+         
+         pad.xSigUnderLine = 10;
+         pad.ySigUnderLine = 50;
+         
+         pad.xWho = 250;
+         pad.yWho = 72;
+         pad.xWhy = 180;
+         pad.yWhy = 82;
+         break;
+           
+    case PADWIDTH_430:
+
+         pad.ButtonWidth = 70;
+         pad.ButtonFontSize = 14;
+         pad.KeyWidth = 16;
+         pad.Model = padRange.STU430;
+         pad.PinButtonFontSize = 16;
+         pad.PinSize = 12;
+
+         pad.sigUnderLine = ".........................................";
+         pad.sigUnderLineFontSize = 15;  
+         pad.TextSize = 9;
+         pad.Width = padWidth;
+      
+         pad.xCancelButton = padPosition.LEFT;
+         pad.yCancelButton = padPosition.BOTTOM;
+         
+         pad.xClearButton = padPosition.CENTRE;
+         pad.yClearButton = padPosition.BOTTOM;
+         
+         pad.xOKButton = padPosition.RIGHT;
+         pad.yOKButton = padPosition.BOTTOM;
+         
+         pad.xPin1Object = 100;
+         pad.yPin1Object = 50;
+         pad.xPin2Object = 150;
+         pad.yPin2Object = 50;
+         pad.xPin3Object = 200;
+         pad.yPin3Object = 50;
+         pad.xPin4Object = 100;
+         pad.yPin4Object = 90;
+         pad.xPin5Object = 150;
+         pad.yPin5Object = 90;
+         pad.xPin6Object = 200;
+         pad.yPin6Object = 90;
+         pad.xPin7Object = 100;
+         pad.yPin7Object = 130;
+         pad.xPin8Object = 150;
+         pad.yPin8Object = 130;
+         pad.xPin9Object = 200;
+         pad.yPin9Object = 130;
+         
+         pad.xPinEcho = 250;
+         pad.yPinEcho = 80;
+         
+         pad.xSigUnderLine = padPosition.CENTRE;
+         pad.ySigUnderLine = 100;
+         
+         pad.xWho = padPosition.RIGHT;
+         pad.yWho = 127;
+         
+         pad.xWhy = padPosition.RIGHT;
+         pad.yWhy = 142;
+         break;
+         
+    case PADWIDTH_500:
+         pad.ButtonWidth = 110;
+         pad.ButtonFontSize = 24;
+         pad.Model = padRange.STU500;
+         pad.PinButtonFontSize = 30;
+         
+         pad.sigUnderLine = ".........................................";
+         pad.sigUnderLineFontSize = 30;  
+         pad.TextSize = 14;
+         pad.Width = padWidth;
+                  
+         pad.xCancelButton = padPosition.LEFT;
+         pad.yCancelButton = padPosition.BOTTOM;
+         
+         pad.xClearButton = padPosition.CENTRE;
+         pad.yClearButton = padPosition.BOTTOM;
+         
+         pad.xOKButton = padPosition.RIGHT;
+         pad.yOKButton = padPosition.BOTTOM;
+         
+         pad.xPin1Object = 150;
+         pad.yPin1Object = 130;
+         pad.xPin2Object = 220;
+         pad.yPin2Object = 130;
+         pad.xPin3Object = 290;
+         pad.yPin3Object = 130;
+         pad.xPin4Object = 150;
+         pad.yPin4Object = 210;
+         pad.xPin5Object = 220;
+         pad.yPin5Object = 210;
+         pad.xPin6Object = 290;
+         pad.yPin6Object = 210;
+         pad.xPin7Object = 150;
+         pad.yPin7Object = 290;
+         pad.xPin8Object = 220;
+         pad.yPin8Object = 290;
+         pad.xPin9Object = 290;
+         pad.yPin9Object = 290;
+         
+         pad.xPinEcho = 450;
+         pad.yPinEcho = 210;
+         
+         pad.xSigUnderLine = 10;
+         pad.ySigUnderLine = 300;
+         
+         pad.xWho = padPosition.RIGHT;
+         pad.yWho = 350;
+         pad.xWhy = padPosition.RIGHT;
+         pad.yWhy = 380;
+         break; 
+         
+    case PADWIDTH_5XX:
+         pad.ButtonWidth = 140;
+         pad.ButtonFontSize = 28;
+				 pad.KeyWidth = 25;	 
+         pad.Model = padRange.STU5XX;
+				 pad.PinButtonFontSize = 30;
+
+         pad.sigUnderLine = "..............................................";
+         pad.sigUnderLineFontSize = 32; 
+         pad.TextSize = 16;
+         pad.Width = padWidth;
+         
+         pad.xCancelButton = padPosition.LEFT;
+         pad.yCancelButton = padPosition.BOTTOM;
+         
+         pad.xClearButton = padPosition.CENTRE;
+         pad.yClearButton = padPosition.BOTTOM;
+         
+         pad.xOKButton = padPosition.RIGHT;
+         pad.yOKButton = padPosition.BOTTOM;
+         
+         pad.xPin1Object = 200;
+         pad.yPin1Object = 130;
+         pad.xPin2Object = 280;
+         pad.yPin2Object = 130;
+         pad.xPin3Object = 360;
+         pad.yPin3Object = 130;
+         pad.xPin4Object = 200;
+         pad.yPin4Object = 210;
+         pad.xPin5Object = 280;
+         pad.yPin5Object = 210;
+         pad.xPin6Object = 360;
+         pad.yPin6Object = 210;
+         pad.xPin7Object = 200;
+         pad.yPin7Object = 290;
+         pad.xPin8Object = 280;
+         pad.yPin8Object = 290;
+         pad.xPin9Object = 360;
+         pad.yPin9Object = 290;
+         
+         pad.xPinEcho = 500;
+         pad.yPinEcho = 210;
+         
+         pad.xSigUnderLine = padPosition.CENTRE;
+         pad.ySigUnderLine = 320;     
+
+         pad.xWho = padPosition.RIGHT;
+         pad.yWho = 365;
+         pad.xWhy = padPosition.RIGHT;
+         pad.yWhy = 385;
+         break;
+  }
+  // showMessage("Pad found is " + pad.Model);
+}
+  
 function timedDetect() 
 {
   if (wgssSignatureSDK.running) 
   {
-    document.getElementById("statusText").innerHTML = "Signature SDK Service detected";
+    showMessage("Signature SDK Service detected");
   } 
   else 
   {
-    document.getElementById("statusText").innerHTML = "Signature SDK Service not detected";
+    showMessage("Signature SDK Service not detected");
   }
 }
-var timeout = setTimeout(timedDetect, 1500);
+var timeout = setTimeout(timedDetect, TIMEOUT);
   
 function onDetectRunning()
 {
-  document.getElementById("statusText").innerHTML = "Signature SDK Service detected";
+  showMessage("Signature SDK Service detected");
   clearTimeout(timeout);
 }
 // pass the starting service port  number as configured in the registry
-var wgssSignatureSDK = new WacomGSS_SignatureSDK(onDetectRunning, 8000)
+var wgssSignatureSDK = new WacomGSS_SignatureSDK(onDetectRunning, SERVICEPORT)
 
 function restartSession(onRestartSession)
 {
-  document.getElementById("statusText").innerHTML += "<br>Restarting the session";
-  wgssSignatureSDK = new WacomGSS_SignatureSDK(onRestartSession, 8000)
+  showMessage("Restarting the session");
+  wgssSignatureSDK = new WacomGSS_SignatureSDK(onRestartSession, SERVICEPORT)
 }
 
-function wizPin()
+function wizPin()  // The functions below are executed in reverse order
 {
   var wizCtl;
   var sigCtl;
-  var pad;
   var inputObj;
-  
-  function onDisplay(wizCtlV, status)
+
+  function onCloseWizard(wizCtlV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Display";
+      showMessage("Wizard session ended");
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Display error";
+      showMessage("Error closing wizard");
+    }
+  }
+  
+  function onInputObjGetText(inputObjV, text, status)
+  {  
+    if(status === wgssSignatureSDK.ResponseStatus.OK) 
+    {
+      showMessage("Code entered: " + text);
+      wizCtl.Close(onCloseWizard);
+    }
+    else
+    {
+      showMessage("InputObj GetText error: " + status);
+      wizCtl.Close(onCloseWizard);
+    }
+  }
+  
+  /* This function handles the events generated by the user input on the pad */
+  function wizPin_Handler(ctl, eventId, eventType, status)
+  {   
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      switch(eventId) 
+      {
+        case "input":
+          switch (type) 
+          {
+            case 1: 
+              break; // showMessage("min chars entered")
+            case 4: 
+              break; // showMessage("max chars entered")
+            case 5: 
+              break; // showMessage("attempted to exceed min/max chars")
+            default: 
+              showMessage("Input unexpected type: " + eventType); 
+              break;
+          }
+          break;
+          
+      case buttonEvent.CLEAR:   
+        break; // handled by the InputObj control
+        
+      case buttonEvent.OK:
+        this.inputObj.GetText(onInputObjGetText);
+        break;
+        
+      case buttonEvent.CANCEL:
+        showMessage(buttonEvent.CANCEL);
+        wizCtl.Close(onCloseWizard);
+        break;
+        
+      default:
+        showMessage( "Exception: wizPin_Handler(): " + "unexpected event Id: " + eventId);
+        break;
+      }  
+    }
+    else
+    {
+      showMessage("Wizard window closed");
+    }
+  }
+  
+  function onDisplay(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl Display");
+      wizCtl = wizCtlV;
+      wizCtlV.SetEventHandler(wizPin_Handler);
+    }
+    else
+    {
+      showMessage("WizCtl Display error");
+    }
+  }
+  
+  function onPutZoom(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl Zoom 100.0");
+      setTimeout(wizCtlV.Display(onDisplay), 1000);
+    }
+    else
+    {
+      showMessage("WizCtl Zoom failed");
+    }
+  }
+  
+  function onAddOk(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl Add Ok Button");
+      wizCtlV.PutZoom(100, onPutZoom);
+    }
+    else
+    {
+      showMessage("WizCtl Add Ok Button failed");
+    }
+  }
+  
+  function onAddClear(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl onAddClear");    
+      addButtonObject(wizCtlV, buttonEvent.OK, pad.xOKButton, pad.yOKButton, buttonEvent.OK, pad.ButtonWidth, onAddOk);
+    }
+    else
+    {
+      showMessage("WizCtl Add Clear Button failed");
+    }
+  }
+  
+  function onAddCancel(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl onAddCancel"); 
+      addButtonObject(wizCtlV, buttonEvent.CLEAR, pad.xClearButton, pad.yClearButton, buttonEvent.CLEAR, pad.ButtonWidth, onAddClear);
+    }
+    else
+    {
+      showMessage("WizCtl Add Cancel Button failed");
+    }
+  }
+  
+  function onSetButtonFont(wizCtlV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl onSetButtonFont");
+      addButtonObject(wizCtlV, buttonEvent.CANCEL, pad.xCancelButton, pad.yCancelButton, buttonEvent.CANCEL, pad.ButtonWidth, onAddCancel);
+    }
+    else
+    {
+      showMessage("WizCtl onSetButtonFont error");
     }
   }
   
   function onAddInputEcho(wizCtlV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl AddInputEcho";
-      wizCtlV.Display(onDisplay);
+      // showMessage("WizCtl onAddInputEcho");
+      setFont(wizCtlV, pad.Font, pad.ButtonFontSize, onSetButtonFont);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl AddInputEcho error";
+      showMessage("WizCtl AddInputEcho error");
     }
   }
   
   function onPutFont2(wizCtlV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    var y = 0;
+    
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont2";
-      this.pad.x.Set("center");
-	  
-	  // Now set up the y axis position depending on which model pad it is
-	  if (this.pad.Width == 396 && this.pad.Height == 100)
-	  {
-	     // This is an STU 300
-         this.pad.y.Set(y = this.pad.Height / 2);
-	  }
-	  else
-	  if (this.pad.Width == 320 && this.pad.Height == 200)
-	  {
-	     // This is a 430
-         this.pad.y.Set(y = this.pad.Height / 2);
-	  }
-	  else
-	  {
-         this.pad.y.Set(y = this.pad.yText + 4*this.pad.yLSText);
-	  }
-	  
+      // showMessage("WizCtl onPutFont2");
+      
+      var xPos = new wgssSignatureSDK.Variant();
+      var yPos = new wgssSignatureSDK.Variant();
+      
+      xPos.Set(pad.xPinEcho);
+      yPos.Set(pad.yPinEcho);
+      // showMessage("Input Echo x and y coordinates set to " + pad.xPinEcho + "/" + pad.yPinEcho);
+      
       var vIE = new wgssSignatureSDK.Variant();
       var option = new wgssSignatureSDK.Variant();
       option.Set(8);
-      wizCtlV.AddObject(wgssSignatureSDK.ObjectType.ObjectInputEcho, "", this.pad.x, 
-                        this.pad.y, vIE, option, onAddInputEcho);
+      wizCtlV.AddObject(wgssSignatureSDK.ObjectType.ObjectInputEcho, "", xPos, 
+                          yPos, vIE, option, onAddInputEcho);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont2 error";
+      showMessage("WizCtl PutFont2 error");
     }
   }
   
   function onAddInputObj(wizCtlV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl AddInputObj";
-	  
-	  // Now set up the pin size depending on which model pad it is
-	  if (this.pad.Width == 396 && this.pad.Height == 100)
-	  {
-	     // This is an STU 300
-         this.pad.PinSize = 10;
-	  }
-	  else
-	  if (this.pad.Width == 320 && this.pad.Height == 200)
-	  {
-	     // This is a 430
-         this.pad.PinSize = 12;
-	  }
-	  // Otherwise stick to default of 20
-	  
-      var font = new wgssSignatureSDK.Font(this.pad.Font, this.pad.PinSize);
-      var varFont = new wgssSignatureSDK.Variant();
-      varFont.Set(font);
-      wizCtlV.PutFont(varFont, onPutFont2);
+      // showMessage("WizCtl onAddInputObj. PinSize is " + pad.PinSize);      
+      setFont(wizCtlV, pad.Font, pad.PinSize, onPutFont2);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl AddInputObj error";
+      showMessage("WizCtl AddInputObj error");
     }
   }
   
   function onPutMaxLengthInputObj(inputObjV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj PutMaxLength";
-      this.pad.x.Set(0);
-      this.pad.y.Set(0);
+      // showMessage("onPutMaxLengthInputObj");
       var vIO = new wgssSignatureSDK.Variant();
+      var xPos = new wgssSignatureSDK.Variant();
+      var yPos = new wgssSignatureSDK.Variant();
+      
+      xPos.Set(0);
+      yPos.Set(0);
+      
       vIO.type = wgssSignatureSDK.VariantType.VARIANT_INPUTOBJ;
       vIO.handle = inputObjV.handle;
       var option = new wgssSignatureSDK.Variant();
-      this.wizCtl.AddObject(wgssSignatureSDK.ObjectType.ObjectInput, "Input", this.pad.x, 
-                        this.pad.y, vIO, option, onAddInputObj);
+      
+      this.wizCtl.AddObject(wgssSignatureSDK.ObjectType.ObjectInput, "input", xPos, 
+                            yPos, vIO, option, onAddInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj PutMaxLength error";
+      showMessage("InputObj PutMaxLength error");
     }
   }
   
   function onPutMinLengthInputObj(inputObjV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj PutMinLength";
+      // showMessage("onPutMinLengthInputObj");
       inputObjV.PutMaxLength(4, onPutMaxLengthInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj PutMinLength error";
+      showMessage("InputObj PutMinLength error");
     }
   }
   
   function onGetPropertyInputObj(inputObjV, property, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj GetProperty";
+      // showMessage("onGetPropertyInputObj");
       inputObjV.PutMinLength(1, onPutMinLengthInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj GetProperty error";
+      showMessage("InputObj GetProperty error");
     }
   }
   
   function onClearInputObj(inputObjV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj Clear";
+      // showMessage("onClearInputObj");
       inputObjV.GetProperty("Component_FileVersion", onGetPropertyInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj Clear error";
+      showMessage("InputObj Clear error");
     }
   }
   
   function onConstructorInputObj(inputObjV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj Constructor";
+      // showMessage("onConstructorInputObj");
       inputObjV.Clear(onClearInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>InputObj Constructor error";
+      showMessage("InputObj Constructor error");
     }
   }  
   
-  function onAddObjectOne(wizCtlG, status)
+  function onAddPin9(wizCtlG, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>Add One Prompt";
+      // showMessage("onAddPin9");
       this.inputObj = new wgssSignatureSDK.InputObj(onConstructorInputObj);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>Add One failed";
+      showMessage("AddPin9 failed");
+    }
+  }
+  
+  function onAddPin8(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin8");
+      addButtonObject(wizCtlG, "9", pad.xPin9Object, pad.yPin9Object, "9", pad.KeyWidth, onAddPin9);   
+    }
+    else
+    {
+      showMessage("Set AddPin8 failed");
+    }
+  }
+  
+  function onAddPin7(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin7");
+      addButtonObject(wizCtlG, "8", pad.xPin8Object, pad.yPin8Object, "8", pad.KeyWidth, onAddPin8);   
+    }
+    else
+    {
+      showMessage("Set AddPin7 failed");
+    }
+  }
+  
+  function onAddPin6(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin6");
+      addButtonObject(wizCtlG, "7", pad.xPin7Object, pad.yPin7Object, "7", pad.KeyWidth, onAddPin7);   
+    }
+    else
+    {
+      showMessage("Set AddPin6 failed");
+    }
+  }
+  
+  function onAddPin5(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin5");
+      addButtonObject(wizCtlG, "6", pad.xPin6Object, pad.yPin6Object, "6", pad.KeyWidth, onAddPin6);   
+    }
+    else
+    {
+      showMessage("Set AddPin5 failed");
+    }
+  }
+  
+  function onAddPin4(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin4");
+      addButtonObject(wizCtlG, "5", pad.xPin5Object, pad.yPin5Object, "5", pad.KeyWidth, onAddPin5);   
+    }
+    else
+    {
+      showMessage("Set AddPin4 failed");
+    }
+  }
+  
+  function onAddPin3(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin3");
+      addButtonObject(wizCtlG, "4", pad.xPin4Object, pad.yPin4Object, "4", pad.KeyWidth, onAddPin4);   
+    }
+    else
+    {
+      showMessage("Set AddPin3 failed");
+    }
+  }
+  
+  function onAddPin2(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin2");
+      addButtonObject(wizCtlG, "3", pad.xPin3Object, pad.yPin3Object, "3", pad.KeyWidth, onAddPin3);   
+    }
+    else
+    {
+      showMessage("Set AddPin2 failed");
+    }
+  }
+  
+  function onAddPin1(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddPin1");
+      addButtonObject(wizCtlG, "2", pad.xPin2Object, pad.yPin2Object, "2", pad.KeyWidth, onAddPin2);   
+    }
+    else
+    {
+      showMessage("Set AddPin1 failed");
+    }
+  }
+  
+  function onSetFontPinButtons(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onSetFontPinButton");
+      addButtonObject(wizCtlG, "1", pad.xPin1Object, pad.yPin1Object, "1", pad.KeyWidth, onAddPin1);   
+    }
+    else
+    {
+      showMessage("Set Font Pin Buttons failed");
     }
   }
   
   function onAddObjectText(wizCtlG, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>Add Text Prompt";
-      
-	  // The STU 500 values will work OK with the 520 and 530, but not the 300 and 430
-	  if (this.pad.Width == 396 && this.pad.Height == 100)
-	  {
-	     // This is an STU 300
-		 this.pad.x.num = this.pad.Width/6;
-         this.pad.y.num = this.pad.Height/2;
-	  }
-	  else
-	  if (this.pad.Width == 320 && this.pad.Height == 200)
-	  {
-	     // This is a 430
-		 this.pad.x.num = this.pad.Width/2 - this.pad.KeyWidth/2 - 2*this.pad.KeyWidth;
-         this.pad.y.num = this.pad.Height / 2;
-	  }
-	  else
-	  { 
-         this.pad.x.num = this.pad.Width/2 - this.pad.KeyWidth/2 - 2*this.pad.KeyWidth;
-         this.pad.y.num = this.pad.yText + 7*this.pad.yLSText;
-	  }
-	  
-      var txtOne = new wgssSignatureSDK.Variant();
-      txtOne.Set("1");
-      var option = new wgssSignatureSDK.Variant();
-      option.Set(this.pad.KeyWidth);
-      wizCtlG.AddObject(wgssSignatureSDK.ObjectType.ObjectButton, "1", this.pad.x, this.pad.y, txtOne, 
-                        option, onAddObjectOne);
+      setFont(wizCtlG, pad.Font, pad.PinButtonFontSize, onSetFontPinButtons);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>Text Prompt Add failed";
+      showMessage("Add Object Text failed");
     }
   }
-  
-  function onGetPadWidth(wizCtlG, width, status)
+    
+  function onPutPinFont(wizCtlG, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl GetPadWidth";
-      this.pad.Width = width;
-  	  //document.getElementById("statusText").innerHTML += "<br>WizCtl GetPadWidth: " + this.pad.Width;
-
-	    // Font sizes depend on the pad height and width
-	    document.getElementById("statusText").innerHTML += "<br>Pad height and width: " + this.pad.Height + " " + this.pad.Width;
-	  
-      // Set up the font size depending on which pad is in use	 
-      if (this.pad.Width == 396 && this.pad.Height == 100)
-      {
-         this.pad.TextSize = 8;
-      }
-      else
-      if (this.pad.Width == 320 && this.pad.Height == 200)
-      {
-         // This is a 430
-           this.pad.TextSize = 9;
-      }
-	    var font = new wgssSignatureSDK.Font(this.pad.Font, this.pad.TextSize);
-      var varFont = new wgssSignatureSDK.Variant();
-      varFont.Set(font);
-	    wizCtlG.PutFont(varFont, onPutFont);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl GetPadWidth failed";
-    }
-  }
-  
-  function onGetPadHeight(wizCtlG, height, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl onGetPadHeight";
-      this.pad.Height = height;
-      document.getElementById("statusText").innerHTML += "<br>WizCtl onGetPadHeight: " + this.pad.Height;
-      wizCtlG.GetPadWidth(onGetPadWidth);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl onGetPadHeight failed";
-    }
-  }
-  
-  function onPutFont(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont";
-      //wizCtlG.GetPadHeight(onGetPadHeight);
+      // showMessage("onPutPinFont");
       // We have already got the height and width now so just continue with adding
       // the text objects to the wizctl
 	  
-      this.pad.x = new wgssSignatureSDK.Variant();
-      this.pad.x.Set(this.pad.xText);
-      this.pad.y = new wgssSignatureSDK.Variant();
-      this.pad.y.Set(this.pad.yText);
-      var txtPrompt =  new wgssSignatureSDK.Variant();
-      txtPrompt.Set("Enter a 4 digit PIN code below");
-      var option = new wgssSignatureSDK.Variant();
-      wizCtlG.AddObject(wgssSignatureSDK.ObjectType.ObjectText, "txt", this.pad.x, this.pad.y, txtPrompt, 
-                        option, onAddObjectText);
+      addTextObject(wizCtlG, pad.xText, pad.yText, "txt", "Enter a 4 digit PIN code below", onAddObjectText);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont failed";
-    }
-  }
-  
-  function onReset(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Reset";
-      document.getElementById("statusText").innerHTML += "<br>Setting font size to "+ this.pad.TextSize;
-	  
-
-      // Instead of setting the font first we want to get the pad dimensions so we know
-      // what model the pad is and what size to use for the font
-      wizCtlG.GetPadHeight(onGetPadHeight);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Reset failed";
-    }
-  }
-  
-  function onClose(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl window closed";
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Close failed";
-    }
-  }
-  
-  function onPadConnect(wizCtlG, padConnect, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status && 1 == padConnect)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PadConnect";
-      wizCtlG.Reset(onReset);
-    }
-    else
-    {
-      wizCtlG.Close(onClose);
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PadConnect failed, closing window";
+      showMessage("WizCtl PutFont failed");
     }
   }
 
-  function onPutVisibleWindow(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl window set visible";
-      wizCtlG.PadConnect(onPadConnect);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutVisibleWindow error";
-    }
-  }
-  
-  function onWizCtlPutLicence(wizCtlG, status) 
-  {
-    if (wgssSignatureSDK.ResponseStatus.OK == status) 
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl licence set successfully";
-      wizCtlG.PutVisibleWindow(true, onPutVisibleWindow);
-    }
-    else 
-    {
-      document.getElementById("statusText").innerHTML += "WizCtl licensing error: " + status;
-    }
-  }
-  
-  function onCreateWizCtl(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl created";
-      wizCtlG.PutLicence(LICENCEKEY, onWizCtlPutLicence);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error creating WizCtl";
-    }
-  }
-  
-  function onSigCtlPutLicence(sigCtlV, status) 
-  {
-    if (wgssSignatureSDK.ResponseStatus.OK == status) 
-    {
-      document.getElementById("statusText").innerHTML += "<br>SigCtl licence set successfully";
-      this.wizCtl = new wgssSignatureSDK.WizCtl(onCreateWizCtl);
-    }
-    else 
-    {
-      document.getElementById("statusText").innerHTML += "SigCtl licensing error: " + status;
-    }
-  }
-  
-  
-  function onCreateSigCtl(sigCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>SigCtl created";
-      sigCtlG.PutLicence(LICENCEKEY, onSigCtlPutLicence);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error creating SigCtl";
-      if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
-      {
-        restartSession(wizPin);
-      }
-    }
-  }
-  
-  // Class contains Pad Control data
-  function CPadCtl_STU500() {
-    this.Model = "STU-500";
-    //this.Height = WizCtl.PadHeight;
-    //this.Width  = WizCtl.PadWidth;
-	//document.getElementById("statusText").innerHTML += "<br>Pad width + height: " + this.Width + " " + this.Height;
-    this.Font = "Verdana";
-    this.TextSize = 14;
-    this.xText = 30;
-    this.yText = 10;
-    this.yLSText = 28;
-    this.yButton = "bottom";
-    this.xLeftButton = "left";
-    this.xCentreButton = "centre";
-    this.xRightButton = "right";
-                  
-    this.KeyWidth = 60;         // PIN pad
-    this.PinSize = 20;
-  }
-  
-  if (wgssSignatureSDK.running) 
-  {
-    if(null == canvas) 
-    {
-      canvas = document.getElementById("myCanvas");
-      ctx = canvas.getContext("2d");
-    }
-    this.pad = new CPadCtl_STU500();
-    this.sigCtl = new wgssSignatureSDK.SigCtl(onCreateSigCtl);
-  }
+  startSession(onPutPinFont);  
 }
 // End of wizPin()
 
+// wizCapture()   Note that the functions are called in reverse order starting from 
+//                the bottom of this parent function
 function wizCapture()
 {
+  var sigImageBase64 = true;
   var wizCtl;
-  var sigCtl;
-  var padHeight;
-  var padWidth;
       
-  function onRenderBitmap(sigObjV, bmpObj, status) 
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status) 
-    {
-      if(bmpObj.isBase64)
-      {
-        document.getElementById("statusText").innerHTML += "<br>Base64 bitmap retrieved:<br>";
-        document.getElementById("statusText").innerHTML += "<br>" + bmpObj.image.src;
-      }
-      else
-      {
-        document.getElementById("statusText").innerHTML += "<br>Bitmap retrieved, rendering image...";
-      }
-      ctx.drawImage(bmpObj.image, 0, 0);
-    } 
-    else 
-    {
-      document.getElementById("statusText").innerHTML += "<br>Signature Render Bitmap error: " + status;
-    }
-  }
-  
-  function onGetSignature(sigCtlV, sigObjV, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>Rendering Signature into bitmap";
-      var flags = wgssSignatureSDK.RBFlags.RenderOutputBase64 |
-                  wgssSignatureSDK.RBFlags.RenderColor24BPP;
-      sigObjV.RenderBitmap("png", canvas.width, canvas.height, 0.7, 0x00000000, 0x00FFFFFF, flags, 0, 0, onRenderBitmap);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error retrieving signature";
-    }
-  }
-  
-  function onDisplay(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>Displaying wizard";
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error displaying";
-    }
-  }
-  
-  function onCloseWizard(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>Retrieving signature";
-      sigCtl.GetSignature(onGetSignature);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error closing wizard";
-    }
-  }
-  
-  function onPutZoom(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      function eventHandler(ctl, id, type, status)
-      {
-        if(wgssSignatureSDK.ResponseStatus.OK == status)
-        {
-          document.getElementById("statusText").innerHTML += "<br>EVENT " + id + " " + type;
-          if("ok" ==  id)
-          {
-            document.getElementById("statusText").innerHTML += "<br>Closing wizard";
-            wizCtlG.Close(onCloseWizard);
-          }
-          else if("cancel" == id)
-          {
-            document.getElementById("statusText").innerHTML += "<br>Closing wizard";
-            wizCtlG.Close(function(wiz, status){});
-          }
-        }
-        else
-        {
-          document.getElementById("statusText").innerHTML += "<br>EVENT WizCtl closed";
-        }
-      }
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Zoom 100.0";
-      wizCtlG.SetEventHandler(eventHandler);
-      setTimeout(wizCtlG.Display(onDisplay), 1000);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Zoom failed";
-    }
-  }
-  
-  function onAddOk(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Ok Button";
-      wizCtlG.PutZoom(100, onPutZoom);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Ok Button failed";
-    }
-  }
-  
-  function onAddClear(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Clear Button";
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      xVar.Set("right");
-      yVar.Set("bottom");
-      objData.Set("Ok");
-      options.Set(110);
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectButton,
-        "ok",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onAddOk
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Clear Button failed";
-    }
-  }
-  function onAddCancel(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Cancel Button";
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      xVar.Set("center");
-      yVar.Set("bottom");
-      objData.Set("Clear");
-      options.Set(110);
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectButton,
-        "clear",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onAddClear
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Cancel Button failed";
-    }
-  }
-  function onPutWho(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add who text";
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      xVar.Set("left");
-      yVar.Set("bottom");
-      objData.Set("Cancel");
-      options.Set(110);
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectButton,
-        "cancel",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onAddCancel
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add who text failed";
-    }
-  }
-  function onPutWhy(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add why text";
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      xVar.Set("left");
-      yVar.Set(10);
-      objData.Set("J Smith");
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectText,
-        "who",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onPutWho
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add why text failed";
-    }
-  }
-  
-  function onPutSignature(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Signature Object";
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      xVar.Set("right");
-      yVar.Set(400);
-      objData.Set("fy");
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectText,
-        "why",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onPutWhy
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Add Signature Object failed";
-    }
-  }
-  
-  function onGetFont(wizCtlG, font, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl GetFont:";
-      document.getElementById("statusText").innerHTML += "<br>Variant type " + font.type;
-      document.getElementById("statusText").innerHTML += "<br>Font name " + font.fontName;
-      document.getElementById("statusText").innerHTML += "<br>Font size " + font.fontSize;
-      var xVar = new wgssSignatureSDK.Variant();
-      var yVar = new wgssSignatureSDK.Variant();
-      var objData = new wgssSignatureSDK.Variant();
-      var options = new wgssSignatureSDK.Variant();
-      objData.Set(sigCtl);
-      wizCtlG.AddObject(
-        wgssSignatureSDK.ObjectType.ObjectSignature,
-        "sig",
-        xVar,
-        yVar,
-        objData,
-        options,
-        onPutSignature
-      );
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl GetFont failed";
-    }
-  }
-  
-  function onGetPadWidth(wizCtlG, width, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-	  var textSize;
-	  
-      padWidth = width;      
-	  // Font sizes depend on the pad height and width
-	  document.getElementById("statusText").innerHTML += "<br>Pad height and width: " + padHeight + " " + padWidth;
-	  
-      // Set up the font size depending on which pad is in use	 
-	  if (padWidth == 396 && padHeight == 100)
-	  {
-	     textSize = 8;
-	  }
-	  else
-	  if (padWidth == 320 && padHeight == 200)
-	  {
-	     // This is a 430
-         textSize = 9;
-	  }
-	  else
-	     textSize = 16;
-		 
-	  var font = new wgssSignatureSDK.Font("Verdana", textSize);
-      var varFont = new wgssSignatureSDK.Variant();
-      varFont.Set(font);
-	  wizCtlG.PutFont(varFont, onPutFont);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl GetPadWidth failed";
-    }
-  }
-  
-  function onGetPadHeight(wizCtlG, height, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      padHeight = height;
-	  document.getElementById("statusText").innerHTML += "<br>WizCtl onGetPadHeight: " + padHeight;
-      wizCtlG.GetPadWidth(onGetPadWidth);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl onGetPadHeight failed";
-    }
-  }
-  
-  function onPutFont(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont";
-      wizCtlG.GetFont(onGetFont);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutFont failed";
-    }
-  }
-  
-  function onReset(wizCtlG, status)
-  {
-    var fontSize; 
-	
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Reset";
-      wizCtlG.GetPadHeight(onGetPadHeight);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Reset failed";
-    }
-  }
-  
-  function onClose(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl window closed";
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl Close failed";
-    }
-  }
-
-  function onPadConnect(wizCtlG, padConnect, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status && 1 == padConnect)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PadConnect";
-      wizCtlG.Reset(onReset);
-    }
-    else
-    {
-      wizCtlG.Close(onClose);
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PadConnect failed, closing window";
-    }
-  }
-  
-  function onPutVisibleWindow(wizCtlG, status)
-  {
-    document.getElementById("statusText").innerHTML += "<br>Connecting to pad";
-  
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl window set visible";
-      wizCtlG.PadConnect(onPadConnect);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl PutVisibleWindow error";
-    }
-  }
-  
-  function onWizCtlPutLicence(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl licence created";
-      wizCtlG.PutVisibleWindow(true, onPutVisibleWindow);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl licensing error";
-    }
-  }
-  
-  function onCreateWizCtl(wizCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>WizCtl created";
-      wizCtlG.PutLicence(LICENCEKEY, onWizCtlPutLicence);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error creating WizCtl";
-    }
-  }
-  
-  function onSigCtlPutLicence(sigCtlV, status) 
-  {
-    if (wgssSignatureSDK.ResponseStatus.OK == status) 
-    {
-      this.wizCtl = new wgssSignatureSDK.WizCtl(onCreateWizCtl);
-    }
-    else 
-    {
-      document.getElementById("statusText").innerHTML += "SigCtl licensing error: " + status;
-    }
-  }
-  
-  function onCreateSigCtl(sigCtlG, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>SigCtl created";
-      sigCtlG.PutLicence(LICENCEKEY, onSigCtlPutLicence);
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>Error creating SigCtl";
-      if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
-      {
-        restartSession(wizCapture);
-      }
-    }
-  }
-  
-  if (wgssSignatureSDK.running) 
-  {
-    if(null == canvas) 
-    {
-      canvas = document.getElementById("myCanvas");
-      ctx = canvas.getContext("2d");
-    }
-    sigCtl = new wgssSignatureSDK.SigCtl(onCreateSigCtl);
-  }
-}
-
-function captureSignature() {
-  var sigObj;
-  var sigCtl;
-  var dynCapt;
-  
-  function onPutSigData(sigObjV, status)
-  {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
-    {
-      document.getElementById("statusText").innerHTML += "<br>PutSigData called";
-    }
-    else
-    {
-      document.getElementById("statusText").innerHTML += "<br>error on PutSigData: " + status;
-    }
-  }
-  
   function onGetSigText(sigObjV, data, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>SigText: " + data;
+      // showMessage("SigText: " + data);
       var vData = new wgssSignatureSDK.Variant();
       vData.type = wgssSignatureSDK.VariantType.VARIANT_BASE64;
       vData.base64 = data;
-      sigObjV.PutSigData(vData, onPutSigData);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>error on GetSigData: " + status;
+      showMessage("error on GetSigData: " + status);
     }
   }
   
   function onGetAdditionalData(sigObjV, additionalData, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>Additional Data/MachineOS: " + additionalData;
+      // showMessage("Additional Data/MachineOS: " + additionalData);
       sigObjV.GetSigText(onGetSigText);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>error on GetAdditionalData: " + status;
+      showMessage("error on GetAdditionalData: " + status);
     }
   }
   
   function onRenderBitmap(sigObjV, bmpObj, status) 
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status) 
+    // showMessage("onRenderBitmap");
+    if(status === wgssSignatureSDK.ResponseStatus.OK) 
     {
-      if(bmpObj.isBase64)
-      {
-        document.getElementById("statusText").innerHTML += "<br>Base64 bitmap retrieved:<br>";
-        document.getElementById("statusText").innerHTML += "<br>" + bmpObj.image.src;
-      }
-      else
-      {
-        document.getElementById("statusText").innerHTML += "<br>Bitmap retrieved, rendering image...";
-      }
-      ctx.drawImage(bmpObj.image, 0, 0);
+      showMessage("Displaying signature on HTML form");
+      redrawSignature(sigImageBase64, bmpObj);
       sigObjV.GetAdditionalData(wgssSignatureSDK.CaptData.CaptMachineOS, onGetAdditionalData);
     } 
     else 
     {
-      document.getElementById("statusText").innerHTML += "<br>Signature Render Bitmap error: " + status;
+      showMessage("Signature Render Bitmap error: " + status);
+    }
+  }
+  
+  function onGetSignature(sigCtlV, sigObjV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("Rendering Signature into bitmap with width and height: " + sigImageBox.offsetWidth + " " + sigImageBox.offsetHeight);
+      sigImageBase64 = true;
+      var flags = wgssSignatureSDK.RBFlags.RenderOutputBase64 |
+                  wgssSignatureSDK.RBFlags.RenderColor24BPP;
+      sigObjV.RenderBitmap("bmp", sigImageBox.offsetWidth, sigImageBox.offsetHeight, 0.7, 0x00000000, 0x00FFFFFF, flags, 0, 0, onRenderBitmap);
+    }
+    else
+    {
+      showMessage("Error retrieving signature");
+    }
+  }
+  
+  function onDisplay(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      showMessage("Displaying wizard");
+    }
+    else
+    {
+      showMessage("Error displaying");
+    }
+  }
+  
+  function onCloseWizard(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("Retrieving signature");
+      sigCtl.GetSignature(onGetSignature);
+    }
+    else
+    {
+      showMessage("Error closing wizard");
+    }
+  }
+  
+  function onPutZoom(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      function eventHandler(ctl, id, type, status)
+      {
+        if(status === wgssSignatureSDK.ResponseStatus.OK)
+        {
+          // showMessage("EVENT " + id + " " + type);
+          if(id === buttonEvent.OK)
+          {
+            showMessage("Closing wizard");
+            wizCtlG.Close(onCloseWizard);
+          }
+          else if(id === buttonEvent.CANCEL)
+          {
+            showMessage("Closing wizard");
+            wizCtlG.Close(function(wiz, status){});
+          }
+        }
+        else
+        {
+          showMessage("EVENT WizCtl closed");
+        }
+      }
+      // showMessage("WizCtl Zoom 100.0");
+      wizCtlG.SetEventHandler(eventHandler);
+      setTimeout(wizCtlG.Display(onDisplay), 1000);
+    }
+    else
+    {
+      showMessage("WizCtl Zoom failed");
+    }
+  }
+  
+  function onAddOk(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddOk");
+      wizCtlG.PutZoom(100, onPutZoom);
+    }
+    else
+    {
+      showMessage("WizCtl Add Ok Button failed");
+    }
+  }
+  
+  function onAddClear(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddClear");   
+      addButtonObject(wizCtlG, buttonEvent.OK, pad.xOKButton, pad.yOKButton, buttonEvent.OK, pad.ButtonWidth, onAddOk);
+    }
+    else
+    {
+      showMessage("WizCtl Add Clear Button failed");
+    }
+  }
+  function onAddCancel(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onAddCancel");
+      addButtonObject(wizCtlG, buttonEvent.CLEAR, pad.xClearButton, pad.yClearButton, buttonEvent.CLEAR, pad.ButtonWidth, onAddClear);
+    }
+    else
+    {
+      showMessage("WizCtl Add Cancel Button failed");
+    }
+  }
+  function onPutButtonFont(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutButtonFont");
+      addButtonObject(wizCtlG, buttonEvent.CANCEL, pad.xCancelButton, pad.yCancelButton, buttonEvent.CANCEL, pad.ButtonWidth, onAddCancel);
+    }
+    else
+    {
+      showMessage("PutButtonFont failed");
+    }
+  }
+  
+  function onPutWho(wizCtlG, status)
+  {
+    // showMessage("onPutWho");
+    if (status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      setFont(wizCtlG, pad.Font, pad.ButtonFontSize, onPutButtonFont);
+    }
+    else
+    {
+      showMessage("Put Who failed");
+    }
+  }
+  
+  function onPutWhy(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl onPutWhy");
+      addTextObject(wizCtlG, pad.xWho, pad.yWho, "who", "J Smith", onPutWho);
+    }
+    else
+    {
+      showMessage("WizCtl Add why failed");
+    }
+  }
+  
+  function onPutFontWhyText(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutFontWhyText");
+      addTextObject(wizCtlG, pad.xWhy, pad.yWhy, "why", "Document approval", onPutWhy);
+    }
+    else
+    {
+      showMessage("Put Font Why Text failed");
+    }
+  }
+  
+  function onPutSigUnderLine(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutSigUnderLine");
+      setFont(wizCtlG, pad.Font, pad.TextSize, onPutFontWhyText);
+    }
+    else
+    {
+      showMessage("WizCtl Add Signature underline failed");
+    }
+  }
+  
+  function onPutSigUnderLineFont(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutSigUnderLineFont");
+      addTextObject(wizCtlG, pad.xSigUnderLine, pad.ySigUnderLine, "txt", pad.sigUnderLine, onPutSigUnderLine);
+    }
+    else
+    {
+      showMessage("Put Signature Underline font failed");
+    }
+  }
+  
+  function onPutSignature(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutSignature");
+      // showMessage("Setting underline font size to " + pad.sigUnderLineFontSize);
+      setFont(wizCtlG, pad.Font, pad.sigUnderLineFontSize, onPutSigUnderLineFont);
+    }
+    else
+    {
+      showMessage("WizCtl Add Signature Object failed");
+    }
+  }
+  
+  function onGetFont(wizCtlG, font, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("WizCtl GetFont:");
+      // showMessage("Variant type " + font.type);
+      // showMessage("Font name " + font.fontName);
+      // showMessage("Font size " + font.fontSize);
+      
+      var xVar = new wgssSignatureSDK.Variant();
+      var yVar = new wgssSignatureSDK.Variant();
+      var objData = new wgssSignatureSDK.Variant();
+      var options = new wgssSignatureSDK.Variant();
+      
+      objData.Set(sigCtl);
+      wizCtlG.AddObject(wgssSignatureSDK.ObjectType.ObjectSignature, "sig", xVar, yVar, objData, options, onPutSignature);
+    }
+    else
+    {
+      showMessage("WizCtl GetFont failed");
+    }
+  }
+    
+  function onPutFont(wizCtlG, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("onPutFont");
+      wizCtlG.GetFont(onGetFont);
+    }
+    else
+    {
+      showMessage("WizCtl PutFont failed");
+    }
+  }
+
+  startSession(onPutFont); 
+}
+
+function captureSignature() 
+{
+  var sigObj;
+  var sigCtl;
+  var sigImageIsBase64 = false;
+  var dynCapt;
+  
+  function onPutSigData(sigObjV, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("PutSigData called");
+    }
+    else
+    {
+      showMessage("error on PutSigData: " + status);
+    }
+  }
+  
+  function onGetSigText(sigObjV, data, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("SigText: " + data);
+      var vData = new wgssSignatureSDK.Variant();
+      vData.type = wgssSignatureSDK.VariantType.VARIANT_BASE64;
+      vData.base64 = data;
+    }
+    else
+    {
+      showMessage("error on GetSigData: " + status);
+    }
+  }
+  
+  function onGetAdditionalData(sigObjV, additionalData, status)
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
+    {
+      // showMessage("Additional Data/MachineOS: " + additionalData);
+      sigObjV.GetSigText(onGetSigText);
+    }
+    else
+    {
+      showMessage("error on GetAdditionalData: " + status);
+    }
+  }
+  
+  function onRenderBitmap(sigObjV, bmpObj, status) 
+  {
+    if(status === wgssSignatureSDK.ResponseStatus.OK) 
+    {
+      redrawSignature(sigImageIsBase64, bmpObj);
+      sigObjV.GetAdditionalData(wgssSignatureSDK.CaptData.CaptMachineOS, onGetAdditionalData);
+    } 
+    else 
+    {
+      showMessage("Signature Render Bitmap error: " + status);
     }
   }
   
   function onPutExtraData(sigObjV, status) 
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status) 
+    if(status === wgssSignatureSDK.ResponseStatus.OK) 
     {
-      document.getElementById("statusText").innerHTML += "<br>Rendering bitmap";
+      // showMessage("Rendering bitmap");
+      sigImageIsBase64 = false;
       var flags = wgssSignatureSDK.RBFlags.RenderOutputPicture |
                   wgssSignatureSDK.RBFlags.RenderColor24BPP;
-      sigObjV.RenderBitmap("bmp", canvas.width, canvas.height, 0.7, 0x00000000, 0x00FFFFFF, flags, 0, 0, onRenderBitmap);
+      sigObjV.RenderBitmap("bmp", sigImageBox.offsetWidth, sigImageBox.offsetHeight, 0.7, 0x00000000, 0x00FFFFFF, flags, 0, 0, onRenderBitmap);
       this.sigObj = sigObjV;
     } 
     else 
     {
-      document.getElementById("statusText").innerHTML += "<br>Signature PutExtraData error: " + status;
+      showMessage("Signature PutExtraData error: " + status);
     }
   }
   
   function onDynCaptCapture(dynCaptV, sigObjV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      document.getElementById("statusText").innerHTML += "<br>Adding extra data";
+      // showMessage("Adding extra data");
       sigObjV.PutExtraData("extra key", "extra value", onPutExtraData);
     } 
-    else if(1 == status) 
+    else if(status === 1) 
     {
-      document.getElementById("statusText").innerHTML += "<br>Signature capture cancelled by the user";
+      showMessage("Signature capture cancelled by the user");
     } 
     else 
     {
-      document.getElementById("statusText").innerHTML += "<br>Signature capture error: " + status;
+      showMessage("Signature capture error: " + status);
     }  
   }
         
   function onSigCtlPutLicence(sigCtlV, status)
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
-      dynCapt.Capture(sigCtlV, "name surnam e", "reason rr e a son", null, null, onDynCaptCapture);
+      dynCapt.Capture(sigCtlV, "John P Smith", "Document authorisation", null, null, onDynCaptCapture);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>SigCtl constructor error: " + status;
+      showMessage("SigCtl constructor error: " + status);
     }
   }  
 
   function onSigCtlConstructor(sigCtlV, status)
   {
-     if(wgssSignatureSDK.ResponseStatus.OK == status)
+     if(status === wgssSignatureSDK.ResponseStatus.OK)
      {
         sigCtlV.PutLicence(LICENCEKEY, onSigCtlPutLicence);
      }
      else
      {
-       document.getElementById("statusText").innerHTML += "<br>SigCtl constructor error: " + status;
+       showMessage("SigCtl constructor error: " + status);
      }
   }
   
   function onDynCaptConstructor(dynCaptV, status) 
   {
-    if(wgssSignatureSDK.ResponseStatus.OK == status)
+    if(status === wgssSignatureSDK.ResponseStatus.OK)
     {
       this.sigCtl = new wgssSignatureSDK.SigCtl(onSigCtlConstructor);
     }
     else
     {
-      document.getElementById("statusText").innerHTML += "<br>Dynamic Capture constructor error: " + status;
-      if(wgssSignatureSDK.ResponseStatus.INVALID_SESSION == status)
+      showMessage("Dynamic Capture constructor error: " + status);
+      if(status === wgssSignatureSDK.ResponseStatus.INVALID_SESSION)
       {
         restartSession(captureSignature);
       }
@@ -1106,10 +1255,9 @@ function captureSignature() {
             
   if (wgssSignatureSDK.running) 
   {
-    if(null == canvas) 
+    if(sigImageBox === null) 
     {
-      canvas = document.getElementById("myCanvas");
-      ctx = canvas.getContext("2d");
+      sigImageBox = document.getElementById("imageBox");
     }
     dynCapt = new wgssSignatureSDK.DynamicCapture(onDynCaptConstructor);
   }
@@ -1122,8 +1270,8 @@ function captureSignature() {
 
 <h1>Demo</h1>
 
-<canvas id="myCanvas" width="320" height="210" style="border:1px solid #d3d3d3;">
-Your browser does not support the HTML5 canvas tag.</canvas>
+<div id="imageBox" class="boxed" style="height:70mm;width:120mm; border:1px solid #d3d3d3;">
+</div>
 <br/>wizCapture<br/>
 <input type="button" onclick="captureSignature()" value="Capture Signature using Dynamic Capture"/><br/>
 <input type="button" onclick="wizCapture()" value="Capture Signature using Wizard"/><br/>
