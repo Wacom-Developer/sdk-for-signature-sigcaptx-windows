@@ -13,10 +13,10 @@ See the FAQs for [tablet installation](http://developer-docs.wacom.com/faqs/docs
 
 Download the SDK from https://developer.wacom.com/developer-dashboard
 
-* login using your Wacom ID
-* Select **Downloads for signature**
-* Download **Wacom Ink SDK for signature for Windows Desktop**
-* Accept the End User License Agreement to use the SDK
+* Login using your Wacom ID
+* Navigate to **Downloads for signature**
+* Select **More info** on **WILL SDK for ink for Windows Desktop**
+* Accept the End User License Agreement and select **Download** to use the SDK
 
 The downloaded Zip file contains the SDK with documentation.
 The folders 'SignatureSDK' and 'SigCaptX' are included in the Zip file and contain the MSI and EXE library installers.
