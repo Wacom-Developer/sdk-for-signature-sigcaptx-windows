@@ -1,8 +1,11 @@
 # Wacom Ink SDK for signature - SigCaptX Windows
 
-## Version 1.25.4
+## Version 1.27.0
 
 ## History
+
+* Release v1.27.0 17-Oct-2023
+   * Upgraded to openssl3
 
 * Release v.1.25.4 12-Apr-2022
     * Fix to JS component's compatibility issue with 1.16
