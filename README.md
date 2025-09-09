@@ -6,8 +6,8 @@
 
 In the *Wacom Ink SDK for signature* the SigCaptX Library is an extension of the Signature Library.
 The SigCaptX Library allows a signature enabled web application to be used in a range of browsers thereby giving cross-browser support.
-Previously a signature enabled web application could only be used in Internet Explorer using ActiveX technology.
-The product has been tested with Internet Explorer, MS Edge, Chrome and Firefox.
+Previously a signature enabled web application could only be used in Internet Explorer using ActiveX technology. The SigCaptX Library serves as its replacement.
+The product has been tested to work with MS Edge, Chrome and Firefox and supports both HTTP and HTTPS webpages.
 
 A prerequisite is the installation of the Wacom Signature Library, see: *Wacom Ink SDK for signature - Windows*
 SigCaptX is supplied as a 32-bit application and requires the 32-bit version of the Signature Library, regardless of your Windows version.
@@ -20,6 +20,7 @@ In a browser with no ActiveX support it is not possible to access the Signature 
 Instead calls are made indirectly via a localhost web server which is installed as part of the SigCaptX Library.
 The SigCaptX JavaScript library is provided to give access to the local web server.
 JSONP communication is used as the interface to the local web server using HTTPS requests.
+SigCaptX provides full SDK functionality to the browser through this JSONP communication.
  
 To view the solution schematically:
 
@@ -42,9 +43,10 @@ To illustrate, an html page creates the signature image display area:
 ```ruby
 <div id="imageBox" class="boxed" style="height:35mm;width:60mm; border:1px solid #d3d3d3;">
 </div>
-
+```
 JavaScript application code provides the necessary functionality. For example to capture a signature:
 
+```js
 function capture()
 {
   if(!wgssSignatureSDK.running || null == dynCapt)
@@ -182,6 +184,23 @@ function capture()
   } 
 
 ```
+
+## Registry settings
+
+The registry settings of SigCaptX are under the Windows registry key "HKEY_LOCAL_MACHINE/SOFTWARE/Wacom/SigCaptX".
+
+## Choosing HTTP or HTTPS
+
+By default, SigCaptX will only accept HTTPS connections, but it can be configured to accept HTTP connections. In that case, it will only accept HTTP connections. If you want to change the settings, change the "ssl" value to "true" or "false".
+
+## Port settings
+
+SigCaptX needs to run one service on the computer, as well as one background task for each logged user. Each process uses a unique TCP port for localhost communications. To configure the range of port numbers to be used, change the `start_port` and `end_port` values.
+
+## Proxy settings
+
+Occasionally a SigCaptX background task needs to use the internet, such as when ReadEncodedBitmap is called with a URL for the encoded bitmap. The default settings disable the use of a proxy. To configure the proxy, change the `use_proxy` value to `true` and change the registry values `proxy_ip`, `proxy_port`, `proxy_user`, and `proxy_pass`. 
+
 ---
 
 # Additional resources 
