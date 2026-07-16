@@ -33,7 +33,7 @@ const BITMAP_PADDING_Y = 4;
 
 const TIMEOUT = 1500;         //  Timeout value for connecting to the port used for the SigCaptX service
 const SERVICEPORT = 8000;     //  Port used for the SigCaptX service
-const LICENCEKEY ="<<licence>>"; // Licence key used for sigCtl and wizCtl in SigCaptX-SessionControl.js
+const LICENCEKEY ="<<license>>"; // Licence key used for sigCtl and wizCtl in SigCaptX-SessionControl.js
 const PIN_MAXLENGTH = 4;      //  Max lenght of PIN 
 const PIN_MINLENGTH = 1;      //  Min length of PIN
 
